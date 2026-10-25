@@ -1,0 +1,2833 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Prime Football</title>
+    <style>
+        body { 
+            margin: 0; overflow: hidden; background-color: #01060a; 
+            font-family: 'Arial Black', sans-serif; color: white; user-select: none;
+        }
+        canvas { display: block; }
+        
+        #ui { 
+            position: absolute; top: 15px; left: 0; width: 100%; 
+            display: flex; justify-content: space-around; pointer-events: none; z-index: 10; display: none;
+        }
+        .score-box {
+            background: rgba(0, 0, 0, 0.85); padding: 10px 30px; border-radius: 12px;
+            font-size: 30px; font-weight: bold; border: 2px solid;
+            box-shadow: 0 0 25px; display: flex; align-items: center; gap: 15px;
+        }
+        #p1-score-box { color: #ffffff; border-color: #00ffcc; box-shadow: 0 0 20px #00ffcc; }
+        #p2-score-box { color: #ffffff; border-color: #ff3366; box-shadow: 0 0 20px #ff3366; }
+
+        /* Asosiy Menyu */
+        #menu, #selection-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle, rgba(10, 25, 40, 0.95), rgba(0, 0, 0, 1));
+            display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100;
+            box-sizing: border-box;
+        }
+        #selection-screen { display: none; padding: 20px 0; overflow-y: auto; justify-content: flex-start; }
+        
+        h1 { font-size: 60px; margin: 0; text-align: center; text-transform: uppercase; text-shadow: 0 0 20px #fff; }
+        
+        .controls { 
+            color: #bdc3c7; font-size: 18px; text-align: center; margin: 20px 0; 
+            background: rgba(0,0,0,0.6); padding: 25px; border-radius: 15px; border: 2px dashed #444; line-height: 1.5;
+        }
+        
+        .btn-group { display: flex; gap: 20px; }
+        .btn {
+            background: rgba(255, 255, 255, 0.1); color: #fff; border: 3px solid #fff;
+            padding: 15px 40px; font-size: 24px; font-weight: bold; border-radius: 8px;
+            cursor: pointer; transition: 0.3s; text-transform: uppercase; box-shadow: 0 0 15px rgba(255,255,255, 0.3) inset;
+        }
+        .btn:hover { background: #fff; color: #000; box-shadow: 0 0 40px #fff; transform: scale(1.05); }
+
+        /* Tanlash ekrani sarlavhasi */
+        .select-header {
+            display: flex; align-items: center; justify-content: center; gap: 20px;
+            width: 100%; max-width: 1100px; margin-bottom: 12px; position: relative;
+        }
+        .back-btn {
+            background: rgba(255,255,255,0.08); border: 2px solid #666; color: #fff;
+            padding: 10px 18px; border-radius: 8px; cursor: pointer; font-size: 14px;
+            font-weight: bold; transition: 0.2s; position: absolute; left: 10px;
+        }
+        .back-btn:hover { background: #fff; color: #000; border-color: #fff; }
+        #select-title { margin: 0; text-align: center; }
+
+        /* Qidiruv va filtr paneli */
+        .filter-bar {
+            width: 100%; max-width: 1100px; display: flex; flex-direction: column;
+            align-items: center; gap: 10px; margin-bottom: 10px; padding: 0 15px; box-sizing: border-box;
+        }
+        #searchInput {
+            width: 100%; max-width: 500px; padding: 12px 18px; border-radius: 25px;
+            border: 2px solid #333; background: rgba(255,255,255,0.05); color: #fff;
+            font-size: 16px; box-sizing: border-box; outline: none; transition: 0.2s;
+            font-family: inherit;
+        }
+        #searchInput:focus { border-color: #00ffcc; box-shadow: 0 0 15px rgba(0,255,204,0.3); }
+        #searchInput::placeholder { color: #777; }
+        .tier-filters { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+        .filter-btn {
+            background: rgba(255,255,255,0.06); border: 2px solid #444; color: #ccc;
+            padding: 7px 16px; border-radius: 20px; font-size: 13px; cursor: pointer;
+            transition: 0.2s; font-weight: bold; font-family: inherit;
+        }
+        .filter-btn:hover { border-color: #fff; color: #fff; }
+        .filter-btn.active { background: #fff; color: #000; border-color: #fff; }
+        .roster-count { color: #888; font-size: 13px; margin-bottom: 8px; text-align: center; }
+
+        /* Tanlash ekrani - o'yinchilar ro'yxati */
+        .roster {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(135px, 1fr));
+            align-items: start; gap: 14px; justify-content: center; width: 100%; max-width: 1100px;
+            margin-top: 4px; padding: 20px; background: rgba(0,0,0,0.5); border-radius: 15px;
+            box-sizing: border-box;
+        }
+        .player-card {
+            padding: 14px 10px; background: #111; border: 3px solid #444; border-radius: 10px;
+            text-align: center; cursor: pointer; transition: 0.2s; position: relative;
+        }
+        .player-card:hover { transform: translateY(-5px); border-color: #fff; }
+        .tier-badge { position: absolute; top: -10px; right: -10px; background: gold; color: black; font-size: 11px; padding: 3px 6px; border-radius: 5px; font-weight: 900; white-space: nowrap;}
+        .tier-max { background: linear-gradient(135deg, #ff00ff, #ffd700); color: #000; box-shadow: 0 0 10px #ff00ff; font-size: 10px;}
+        .player-name { font-size: 15px; margin: 8px 0 3px; font-weight: bold; line-height: 1.2; }
+        .player-role { font-size: 10px; color: #999; margin-bottom: 4px; }
+        .player-stats { font-size: 11px; color: #aaa; margin-bottom: 6px; }
+        .player-abilities { display: flex; flex-wrap: wrap; gap: 3px; justify-content: center; }
+        .ability-chip {
+            background: rgba(0,255,204,0.12); border: 1px solid #00ffcc; border-radius: 6px;
+            padding: 2px 5px; font-size: 8.5px; color: #00ffcc; white-space: nowrap;
+        }
+        .player-card.legend-card { border-color: #ff00ff !important; box-shadow: 0 0 18px rgba(255,0,255,0.35); }
+        .player-card.legend-card .ability-chip { background: rgba(255,0,255,0.15); border-color: #ff00ff; color: #ff88ff; }
+        .no-ability { font-size: 10px; color: #666; font-style: italic; }
+        .no-results { grid-column: 1 / -1; text-align: center; color: #888; padding: 50px 20px; font-size: 18px; }
+
+        /* Gol effekti */
+        #goalOverlay {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            font-size: 70px; font-style: italic; display: none; pointer-events: none; z-index: 50;
+            text-align: center; white-space: nowrap; font-weight: 900; text-shadow: 0 0 30px #fff;
+        }
+        @keyframes pop { 
+            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; } 
+            80% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; } 
+        }
+
+        /* Turnir ekrani */
+        #tournament-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle, rgba(10,20,40,0.97), rgba(0,0,0,1));
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 100; box-sizing: border-box; padding: 20px; overflow-y: auto;
+        }
+        #tournament-screen h2 { font-size: 36px; margin: 0 0 18px; text-align: center; color: #ffd700; text-shadow: 0 0 15px #ffd700; }
+        .trn-mode-btns { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px; }
+        .trn-mode-btn {
+            background: rgba(255,215,0,0.1); border: 3px solid #ffd700; color: #ffd700;
+            padding: 14px 30px; font-size: 18px; font-weight: bold; border-radius: 10px;
+            cursor: pointer; transition: 0.25s; font-family: inherit;
+        }
+        .trn-mode-btn:hover, .trn-mode-btn.active { background: #ffd700; color: #000; transform: scale(1.04); }
+        .trn-diff-btns { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px; }
+        .trn-diff-btn {
+            background: rgba(255,255,255,0.06); border: 2px solid #555; color: #ccc;
+            padding: 9px 18px; font-size: 13px; font-weight: bold; border-radius: 20px;
+            cursor: pointer; transition: 0.2s; font-family: inherit;
+        }
+        .trn-diff-btn[data-diff="easy"].active { background: #2ecc71; border-color: #2ecc71; color: #000; }
+        .trn-diff-btn[data-diff="medium"].active { background: #f1c40f; border-color: #f1c40f; color: #000; }
+        .trn-diff-btn[data-diff="hard"].active { background: #e74c3c; border-color: #e74c3c; color: #fff; }
+        .trn-best-record { color: #ffd700; font-size: 13px; text-align: center; margin: 4px 0 12px; }
+        .trn-player-select { display: flex; gap: 30px; flex-wrap: wrap; justify-content: center; margin-bottom: 18px; }
+        .trn-slot {
+            background: rgba(255,255,255,0.06); border: 2px dashed #555; border-radius: 14px;
+            padding: 18px 24px; text-align: center; min-width: 160px; cursor: pointer; transition: 0.2s;
+        }
+        .trn-slot:hover { border-color: #00ffcc; }
+        .trn-slot.filled { border-color: #00ffcc; border-style: solid; background: rgba(0,255,204,0.08); }
+        .trn-slot.bot-slot.filled { border-color: #ff9900; background: rgba(255,153,0,0.08); }
+        .trn-slot-label { font-size: 12px; color: #888; margin-bottom: 6px; }
+        .trn-slot-name { font-size: 16px; font-weight: bold; color: #fff; }
+        .trn-slot-tier { font-size: 11px; color: #aaa; margin-top: 4px; }
+        /* Turnir natijalari */
+        #tournament-results {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.92); display: none; flex-direction: column;
+            align-items: center; justify-content: center; z-index: 200; box-sizing: border-box; padding: 20px;
+        }
+        #tournament-results h2 { font-size: 32px; margin: 0 0 14px; }
+        .trn-rounds-table { width: 100%; max-width: 700px; border-collapse: collapse; margin-bottom: 18px; }
+        .trn-rounds-table th { color: #ffd700; padding: 8px 14px; border-bottom: 2px solid #ffd700; font-size: 14px; text-align: center; }
+        .trn-rounds-table td { padding: 7px 14px; font-size: 13px; text-align: center; border-bottom: 1px solid #222; }
+        .trn-rounds-table tr.win-row td { color: #00ffcc; }
+        .trn-rounds-table tr.loss-row td { color: #ff4444; }
+        .trn-rounds-table tr.draw-row td { color: #ffaa00; }
+        .trn-final-banner { font-size: 28px; font-weight: 900; margin-bottom: 16px; text-align: center; }
+        /* Round counter overlay */
+        #roundBanner {
+            position: absolute; top: 80px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.85); border: 2px solid #ffd700; border-radius: 12px;
+            padding: 8px 28px; font-size: 20px; font-weight: bold; color: #ffd700;
+            pointer-events: none; z-index: 30; display: none; white-space: nowrap;
+        }
+            h1 { font-size: 32px; }
+            .controls { font-size: 13px; padding: 14px; }
+            .btn { padding: 12px 22px; font-size: 15px; }
+            .btn-group { flex-direction: column; gap: 12px; }
+            .score-box { font-size: 16px; padding: 6px 14px; gap: 8px; }
+            #s1, #s2 { font-size: 24px !important; }
+            .select-header { flex-direction: column; gap: 8px; }
+            .back-btn { position: static; align-self: flex-start; margin-left: 15px; }
+            #select-title { font-size: 18px; }
+            .tier-filters { gap: 5px; }
+            .filter-btn { padding: 5px 10px; font-size: 11px; }
+            .roster { grid-template-columns: repeat(auto-fill, minmax(105px, 1fr)); gap: 8px; padding: 10px; }
+            .player-card { padding: 10px 6px; }
+            .player-name { font-size: 13px; }
+        }
+
+        /* ============ HISOB / IQTISODIYOT TIZIMI ============ */
+        #loading-screen {
+            position: absolute; inset: 0; background: #01060a; z-index: 500;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+        }
+        .spinner { width: 46px; height: 46px; border: 4px solid #222; border-top-color: #00ffcc; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        #loading-screen p { color: #888; font-size: 14px; }
+
+        /* ============ O'YIN OCHILISH ANIMATSIYASI ============ */
+        #launchSplash {
+            position: absolute; inset: 0; z-index: 350; background: #01060a;
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+        }
+        #launchSplash.show { display: flex; }
+        .ls-emblem {
+            font-size: 90px; filter: drop-shadow(0 0 30px #ffd700);
+            animation: lsEmblemIn 0.9s cubic-bezier(0.34,1.56,0.64,1) forwards, lsFadeOut 0.4s ease 1.55s forwards;
+        }
+        @keyframes lsEmblemIn { 0%{transform:scale(0) rotate(-200deg);opacity:0;} 100%{transform:scale(1) rotate(0);opacity:1;} }
+        .ls-title {
+            font-size: 40px; font-weight: 900; color: #fff; text-shadow: 0 0 20px #fff; margin-top: 18px;
+            letter-spacing: 2px; opacity: 0;
+            animation: lsTextIn 0.6s ease 0.5s forwards, lsFadeOut 0.4s ease 1.55s forwards;
+        }
+        .ls-sub {
+            font-size: 16px; color: #ffd700; letter-spacing: 8px; margin-top: 8px; opacity: 0;
+            animation: lsTextIn 0.6s ease 0.7s forwards, lsFadeOut 0.4s ease 1.55s forwards;
+        }
+        @keyframes lsTextIn { from{opacity:0;transform:translateY(15px);} to{opacity:1;transform:translateY(0);} }
+        @keyframes lsFadeOut { to{opacity:0; visibility:hidden;} }
+
+        #welcomeToast {
+            position: absolute; top: 70px; left: 50%; transform: translateX(-50%); z-index: 300;
+            display: none; pointer-events: none;
+        }
+        #welcomeToast.show { display: block; }
+        .wt-box {
+            background: rgba(0,0,0,0.88); border: 2px solid #00ffcc; border-radius: 12px; padding: 12px 22px;
+            color: #00ffcc; font-size: 13px; max-width: 360px; text-align: center;
+            box-shadow: 0 0 20px rgba(0,255,204,0.35); animation: toastInOut 4s ease forwards;
+        }
+        @keyframes toastInOut {
+            0% { opacity: 0; margin-top: -10px; }
+            10% { opacity: 1; margin-top: 0; }
+            85% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        /* Valyuta HUD — bosh menyu ichida */
+        .menu-hud {
+            display: flex; gap: 8px; align-items: center; justify-content: center;
+            flex-wrap: wrap; margin-bottom: 18px;
+        }
+        .currency-pill {
+            background: rgba(0,0,0,0.75); border: 2px solid #444; border-radius: 20px; padding: 6px 14px;
+            font-size: 14px; font-weight: bold; display: flex; align-items: center; gap: 5px; color: #fff;
+        }
+        .currency-pill.coin { border-color: #ffd700; color: #ffd700; }
+        .currency-pill.gem { border-color: #cc00ff; color: #e070ff; }
+        .profile-pill {
+            background: rgba(0,0,0,0.75); border: 2px solid #00ffcc; border-radius: 20px; padding: 6px 16px;
+            font-size: 13px; font-weight: bold; color: #00ffcc; cursor: pointer; transition: 0.2s;
+        }
+        .profile-pill:hover { background: #00ffcc; color: #000; }
+        .level-badge {
+            background: linear-gradient(135deg, #ffd700, #ff8800); border: 2px solid #fff;
+            border-radius: 20px; padding: 6px 14px; font-size: 13px; font-weight: 900; color: #000;
+            cursor: pointer; box-shadow: 0 0 12px rgba(255,215,0,0.5); transition: 0.2s;
+        }
+        .level-badge:hover { transform: scale(1.06); }
+        .collection-level-display { display:flex; flex-direction:column; align-items:center; gap:8px; }
+        .cld-badge {
+            font-size:32px; font-weight:900; color:#000;
+            background: linear-gradient(135deg, #ffd700, #ff8800);
+            border: 3px solid #fff; border-radius: 50%; width:90px; height:90px;
+            display:flex; align-items:center; justify-content:center;
+            box-shadow: 0 0 25px rgba(255,215,0,0.5);
+        }
+        .cld-label { color:#ffd700; font-size:13px; font-weight:bold; letter-spacing:1px; }
+        /* PRIME mavsumi uslubi — oltin olov */
+        .tier-badge.tier-prime {
+            background: linear-gradient(135deg, #ff4400, #ffd700); color: #000;
+            box-shadow: 0 0 12px rgba(255,140,0,0.8); font-size: 10px;
+        }
+        .shop-card.prime-card {
+            background: linear-gradient(160deg, #1a1005, #0a0500);
+            box-shadow: 0 0 18px rgba(255,180,0,0.28);
+        }
+        .shop-card.prime-card .sc-badge {
+            background: linear-gradient(135deg, #ff4400, #ffd700); color: #000;
+        }
+        .player-card.prime-card {
+            border-color: #ffd700 !important;
+            background: linear-gradient(160deg, #1a1005, #0a0500);
+            box-shadow: 0 0 16px rgba(255,180,0,0.3);
+        }
+
+        /* Mavsum banneri */
+        .season-banner {
+            background: linear-gradient(90deg, rgba(204,0,255,0.15), rgba(255,215,0,0.15));
+            border: 2px solid #cc00ff; border-radius: 14px; padding: 12px 26px; margin: 14px 0;
+            text-align: center; max-width: 560px; box-shadow: 0 0 20px rgba(204,0,255,0.25);
+        }
+        .season-banner .sb-title { color: #e070ff; font-size: 15px; font-weight: 900; margin-bottom: 4px; }
+        .season-banner .sb-timer { color: #ffd700; font-size: 22px; font-weight: 900; font-variant-numeric: tabular-nums; }
+        .season-banner .sb-sub { color: #aaa; font-size: 11px; margin-top: 4px; }
+        .season-banner.urgent { border-color: #ff3366; animation: pulseRed 1s ease-in-out infinite; }
+        @keyframes pulseRed { 0%,100%{box-shadow:0 0 20px rgba(255,51,102,0.3);} 50%{box-shadow:0 0 34px rgba(255,51,102,0.6);} }
+
+        .menu-extra-btns { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-top: 14px; }
+        .menu-extra-btns .btn { font-size: 14px; padding: 10px 22px; }
+
+        /* Umumiy panel-ekran qolipi (Shop/Pack/Inventar/Profil/Events) */
+        .panel-screen {
+            position: absolute; inset: 0; background: radial-gradient(circle, rgba(10,20,40,0.97), #000);
+            display: none; flex-direction: column; align-items: center; z-index: 150; box-sizing: border-box;
+            padding: 20px; overflow-y: auto;
+        }
+        .panel-header { display:flex; align-items:center; justify-content:center; gap:16px; width:100%; max-width:1100px; position:relative; margin-bottom:14px; }
+        .panel-header h2 { margin:0; font-size:26px; color:#ffd700; text-align:center; }
+        .panel-back-btn { position:absolute; left:0; background: rgba(255,255,255,0.08); border:2px solid #666; color:#fff; padding:9px 16px; border-radius:8px; cursor:pointer; font-size:13px; font-weight:bold; }
+        .panel-back-btn:hover { background:#fff; color:#000; }
+        .panel-wallet { position:absolute; right:0; display:flex; gap:8px; }
+
+        /* Do'kon */
+        .shop-grid {
+            display:grid; grid-template-columns: repeat(auto-fill, minmax(140px,1fr)); gap:12px;
+            width:100%; max-width:1100px; padding: 10px 0 30px;
+        }
+        .shop-card {
+            background:#111; border:3px solid #444; border-radius:10px; padding:12px 8px; text-align:center; position:relative;
+        }
+        .shop-card .sc-badge { position:absolute; top:-9px; right:-9px; background:gold; color:#000; font-size:10px; padding:3px 6px; border-radius:5px; font-weight:900; }
+        .shop-card .sc-name { font-size:14px; font-weight:bold; margin:6px 0 4px; }
+        .shop-card .sc-price { font-size:13px; color:#ffd700; font-weight:900; margin:6px 0; }
+        .shop-card .sc-btn {
+            width:100%; padding:7px 0; border-radius:7px; border:2px solid #00ffcc; background:rgba(0,255,204,0.1);
+            color:#00ffcc; font-weight:bold; font-size:12px; cursor:pointer; font-family:inherit;
+        }
+        .shop-card .sc-btn:hover { background:#00ffcc; color:#000; }
+        .shop-card .sc-btn:disabled { opacity:0.45; cursor:not-allowed; border-color:#555; color:#777; background:none; }
+        .shop-card .sc-owned { color:#00ffcc; font-size:12px; font-weight:bold; padding:7px 0; }
+        .shop-tabs { display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; justify-content:center; }
+        .shop-tab { background:rgba(255,255,255,0.06); border:2px solid #444; color:#ccc; padding:8px 18px; border-radius:20px; font-size:13px; font-weight:bold; cursor:pointer; }
+        .shop-tab.active { background:#fff; color:#000; border-color:#fff; }
+
+        /* Pack */
+        .pack-hero { text-align:center; margin: 10px 0 20px; }
+        .pack-box {
+            width:150px; height:170px; margin: 0 auto 18px; border-radius:16px;
+            background: linear-gradient(160deg,#cc00ff,#ff00aa); box-shadow:0 0 40px rgba(204,0,255,0.5);
+            display:flex; align-items:center; justify-content:center; font-size:64px; cursor:pointer; transition:0.25s;
+        }
+        .pack-box:hover { transform: scale(1.05) rotate(-2deg); }
+        .pack-open-btn { font-size:18px; padding:14px 36px; border-color:#cc00ff; color:#e070ff; background:rgba(204,0,255,0.12); }
+        .odds-table { width:100%; max-width:420px; margin:20px auto; border-collapse:collapse; }
+        .odds-table th, .odds-table td { padding:6px 10px; font-size:12px; text-align:center; border-bottom:1px solid #222; color:#aaa; }
+        .odds-table th { color:#ffd700; }
+        .pack-result {
+            display:none; flex-direction:column; align-items:center; margin-top:10px;
+        }
+        .pack-result-card {
+            width:180px; padding:22px 14px; border-radius:16px; text-align:center; position:relative;
+            animation: revealPop 0.5s ease-out;
+        }
+        @keyframes revealPop { 0%{transform:scale(0.3) rotateY(180deg); opacity:0;} 100%{transform:scale(1) rotateY(0); opacity:1;} }
+        .pack-result-name { font-size:18px; font-weight:900; margin-top:10px; }
+        .pack-result-stars { font-size:16px; margin-top:4px; }
+
+        /* Inventar */
+        .inv-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:12px; width:100%; max-width:1100px; padding-bottom:30px; }
+        .inv-empty { grid-column:1/-1; text-align:center; color:#777; padding:60px 20px; font-size:16px; }
+
+        /* Live Events / Challenge */
+        .event-card {
+            background: rgba(255,255,255,0.05); border:2px solid #444; border-radius:14px; padding:18px 22px;
+            width:100%; max-width:560px; margin-bottom:14px; display:flex; justify-content:space-between; align-items:center; gap:14px;
+        }
+        .event-card.live { border-color:#ff3366; box-shadow:0 0 18px rgba(255,51,102,0.25); }
+        .event-card .ec-info { text-align:left; }
+        .event-card .ec-title { font-size:16px; font-weight:900; margin-bottom:4px; }
+        .event-card .ec-desc { font-size:12px; color:#999; }
+        .event-card .ec-reward { font-size:12px; color:#ffd700; margin-top:4px; }
+        .event-card .ec-btn { background:rgba(255,51,102,0.15); border:2px solid #ff3366; color:#ff6688; padding:9px 18px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:13px; white-space:nowrap; }
+        .event-card .ec-btn:hover { background:#ff3366; color:#fff; }
+        .event-card .ec-btn:disabled { opacity:0.4; cursor:not-allowed; }
+
+        /* ===== SENSORLI BOSHQARUV (mobil/planshet) ===== */
+        .touch-joy-zone {
+            position: fixed; left: 0; bottom: 0; width: 50%; height: 62%;
+            z-index: 78; display: none; touch-action: none;
+        }
+        .touch-joy-base {
+            position: fixed; width: 120px; height: 120px; border-radius: 50%;
+            border: 3px solid rgba(255,255,255,0.30); background: rgba(255,255,255,0.07);
+            display: none; z-index: 79; pointer-events: none;
+            left: 26px; bottom: 26px; opacity: 0.35; transition: opacity 0.15s;
+            box-shadow: 0 0 20px rgba(0,0,0,0.4);
+        }
+        .touch-joy-stick {
+            position: absolute; width: 54px; height: 54px; border-radius: 50%;
+            background: rgba(0,255,204,0.6); left: 30px; top: 30px;
+            box-shadow: 0 0 16px rgba(0,255,204,0.7); transition: transform 0.03s linear;
+        }
+        .touch-action-btn {
+            position: fixed; width: 86px; height: 86px; border-radius: 50%; z-index: 80;
+            display: none; align-items: center; justify-content: center;
+            font-weight: 900; font-size: 22px; border: 3px solid;
+            user-select: none; -webkit-user-select: none; touch-action: none;
+            backdrop-filter: blur(2px); transition: transform 0.08s, box-shadow 0.08s;
+        }
+        .touch-action-btn.pressed { transform: scale(0.88); }
+        #touchBtnR {
+            border-color:#ffd700; background: rgba(255,215,0,0.25); color:#ffd700;
+            right: 26px; bottom: 118px; box-shadow: 0 0 18px rgba(255,215,0,0.35);
+        }
+        #touchBtnE {
+            border-color:#9900ff; background: rgba(153,0,255,0.25); color:#cc66ff;
+            right: 124px; bottom: 40px; box-shadow: 0 0 18px rgba(153,0,255,0.35);
+        }
+        /* Sensorli qurilmada matn tanlanishi/zoomni o'chirish */
+        body.is-touch { touch-action: none; -webkit-touch-callout: none; }
+        body.is-touch canvas { touch-action: none; }
+
+        /* ===== EKRANNI BURISH TAKLIFI (portret rejimda) ===== */
+        #rotatePrompt {
+            position: fixed; inset: 0; z-index: 400; background: #01060a;
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+            text-align: center; padding: 30px; box-sizing: border-box;
+        }
+        #rotatePrompt.show { display: flex; }
+        .rp-icon { font-size: 64px; animation: rotateHint 2s ease-in-out infinite; }
+        @keyframes rotateHint {
+            0%, 100% { transform: rotate(0deg); }
+            50% { transform: rotate(90deg); }
+        }
+        .rp-title { color: #ffd700; font-size: 20px; font-weight: 900; margin-top: 20px; }
+        .rp-sub { color: #888; font-size: 13px; margin-top: 10px; max-width: 300px; line-height: 1.5; }
+
+        @media (max-width: 640px) {
+            .currency-pill { font-size: 11px; padding: 5px 10px; }
+            .level-badge { font-size: 11px; padding: 5px 10px; }
+            .profile-pill { font-size: 11px; padding: 5px 12px; }
+            .season-banner { padding: 8px 14px; }
+            .season-banner .sb-timer { font-size: 17px; }
+            .panel-header h2 { font-size: 19px; }
+            .shop-grid, .inv-grid { grid-template-columns: repeat(auto-fill, minmax(105px,1fr)); gap:8px; }
+            .event-card { flex-direction: column; text-align: center; }
+            .event-card .ec-info { text-align: center; }
+        }
+
+        /* ============ EMBLEMA / KIRISH SARLAVHASI ============ */
+        .emblem { display:flex; flex-direction:column; align-items:center; margin-bottom:2px; }
+        .emblem-ring {
+            width:84px; height:84px; border-radius:50%;
+            background: radial-gradient(circle at 35% 28%, #16281a, #030a04);
+            border: 3px solid #ffd700; box-shadow: 0 0 25px rgba(255,215,0,0.5), inset 0 0 15px rgba(0,255,204,0.25);
+            display:flex; align-items:center; justify-content:center; font-size:40px;
+            animation: emblemGlow 3s ease-in-out infinite;
+        }
+        @keyframes emblemGlow {
+            0%,100% { box-shadow: 0 0 22px rgba(255,215,0,0.45), inset 0 0 14px rgba(0,255,204,0.25); }
+            50%     { box-shadow: 0 0 38px rgba(255,215,0,0.8),  inset 0 0 20px rgba(0,255,204,0.5); }
+        }
+        .emblem-label { margin-top:9px; font-size:12px; letter-spacing:7px; color:#ffd700; font-weight:900; text-shadow:0 0 10px rgba(255,215,0,0.6); }
+        .creator-credit {
+            position: fixed; top: 12px; left: 16px; z-index: 60; font-size: 11px; color: #555;
+            font-style: italic; letter-spacing: 0.4px; pointer-events: none;
+        }
+        .mini-controls-hint { color:#666; font-size:11px; margin-top:16px; letter-spacing:0.3px; }
+
+        /* ============ EKRAN KIRISH ANIMATSIYASI ============ */
+        @keyframes screenFadeIn {
+            0% { opacity: 0; transform: scale(0.96) translateY(10px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .screen-enter { animation: screenFadeIn 0.35s ease-out; }
+
+        /* ============ MATCH INTRO (VS EKRANI) ============ */
+        #matchIntro { position:absolute; inset:0; z-index:250; display:none; pointer-events:none; overflow:hidden; }
+        #matchIntro.show { display:block; }
+        .mi-side { position:absolute; top:0; bottom:0; width:55%; display:flex; align-items:center; }
+        .mi-left { left:0; justify-content:flex-end; padding-right:70px; background:linear-gradient(90deg, rgba(0,255,204,0.22), transparent 80%); animation: miSlideLeft 0.5s ease-out; }
+        .mi-right { right:0; justify-content:flex-start; padding-left:70px; background:linear-gradient(-90deg, rgba(255,51,102,0.22), transparent 80%); animation: miSlideRight 0.5s ease-out; }
+        @keyframes miSlideLeft { from{transform:translateX(-105%);opacity:0;} to{transform:translateX(0);opacity:1;} }
+        @keyframes miSlideRight { from{transform:translateX(105%);opacity:0;} to{transform:translateX(0);opacity:1;} }
+        .mi-name { font-size: 34px; font-weight: 900; text-shadow: 0 0 18px currentColor; text-align:right; animation: miFade 1.5s ease-in forwards; animation-delay: 0.85s; }
+        .mi-right .mi-name { text-align:left; }
+        @keyframes miFade { 0%{opacity:1;} 80%{opacity:1;} 100%{opacity:0;} }
+        .mi-vs {
+            position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+            font-size:52px; font-weight:900; color:#fff; text-shadow:0 0 30px #fff, 0 0 60px #ffd700;
+            animation: miVsPop 1.5s ease-out forwards;
+        }
+        @keyframes miVsPop {
+            0% { transform:translate(-50%,-50%) scale(0) rotate(-20deg); opacity:0; }
+            30% { transform:translate(-50%,-50%) scale(1.25) rotate(0); opacity:1; }
+            70% { transform:translate(-50%,-50%) scale(1) rotate(0); opacity:1; }
+            100% { opacity:0; }
+        }
+
+        /* ============ ENG ZO'RLAR (Best Players) ============ */
+        .rank-row {
+            display:flex; align-items:center; gap:14px; background:rgba(255,255,255,0.04);
+            border:2px solid #333; border-radius:10px; padding:10px 16px; margin-bottom:8px;
+        }
+        .rank-row.rank-1 {
+            border-color:#ffd700; background:linear-gradient(90deg, rgba(255,215,0,0.16), rgba(255,0,255,0.08));
+            box-shadow:0 0 18px rgba(255,215,0,0.3);
+        }
+        .rank-num { font-size:18px; font-weight:900; color:#666; width:34px; text-align:center; flex-shrink:0; }
+        .rank-row.rank-1 .rank-num { color:#ffd700; font-size:24px; }
+        .rank-avatar {
+            width:38px; height:38px; border-radius:50%; flex-shrink:0; display:flex; align-items:center;
+            justify-content:center; font-weight:900; font-size:11px; border:2px solid; background:rgba(0,0,0,0.4);
+        }
+        .rank-info { flex:1; text-align:left; min-width:0; }
+        .rank-name { font-weight:bold; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .rank-tag { font-size:11px; color:#888; }
+        .rank-lock { font-size:11px; color:#ff6688; font-weight:bold; white-space:nowrap; flex-shrink:0; }
+        .rank-row.rank-1 .rank-lock { color:#ffd700; }
+
+        /* ============ PAUZA ============ */
+        #pauseBtn {
+            position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+            width: 40px; height: 40px; border-radius: 50%; background: rgba(0,0,0,0.7);
+            border: 2px solid #666; color: #fff; font-size: 16px; display: none;
+            align-items: center; justify-content: center; cursor: pointer; z-index: 45; transition: 0.2s;
+        }
+        #pauseBtn:hover { border-color: #ffd700; color: #ffd700; }
+        #pauseOverlay {
+            position: absolute; inset: 0; background: rgba(0,0,0,0.82); z-index: 230;
+            display: none; align-items: center; justify-content: center;
+        }
+        .pause-box {
+            background: #111; border: 3px solid #ffd700; border-radius: 18px; padding: 30px 40px;
+            text-align: center; box-shadow: 0 0 40px rgba(255,215,0,0.3); min-width: 240px;
+        }
+        .pause-box h2 { color: #ffd700; margin: 0 0 22px; font-size: 22px; }
+        .pause-box .btn { display: block; width: 100%; margin-bottom: 12px; font-size: 14px; padding: 12px 0; box-sizing: border-box; }
+        .pause-box .btn:last-child { margin-bottom: 0; }
+    </style>
+</head>
+<body>
+
+    <div id="loading-screen">
+        <div class="spinner"></div>
+        <p>Profil yuklanmoqda...</p>
+    </div>
+
+    <div id="launchSplash">
+        <div class="ls-emblem">⚽</div>
+        <div class="ls-title">PRIME FOOTBALL</div>
+        <div class="ls-sub">PRIME SEASON</div>
+    </div>
+
+    <div id="welcomeToast"><div class="wt-box">🎮 Xush kelibsiz! Profilingiz shu hisobingizga saqlanadi — keyingi safar avtomatik kirasiz.</div></div>
+
+    <div id="ui">
+        <div class="score-box" id="p1-score-box"><span id="p1-name">P1</span> <span id="s1" style="color:#00ffcc; font-size: 40px;">0</span></div>
+        <div class="score-box" id="p2-score-box"><span id="s2" style="color:#ff3366; font-size: 40px;">0</span> <span id="p2-name">P2</span></div>
+    </div>
+
+    <div id="pauseBtn" onclick="togglePause()">⏸</div>
+    <div id="pauseOverlay">
+        <div class="pause-box">
+            <h2>⏸ TO'XTATILDI</h2>
+            <button class="btn" onclick="resumeGame()">▶ Davom etish</button>
+            <button class="btn" style="border-color:#ff3366;color:#ff6688" onclick="quitToMenuFromPause()">🏠 Bosh menyuga qaytish</button>
+        </div>
+    </div>
+
+    <div id="goalOverlay">GOOOOOL!</div>
+    <div id="roundBanner"></div>
+
+    <!-- TURNIR EKRANI -->
+    <div id="tournament-screen">
+        <h2>🏆 TURNIR REJIMI</h2>
+        <div class="trn-mode-btns">
+            <button class="trn-mode-btn active" id="trn-btn-1v1" onclick="setTrnMode('1v1')">👤 1 vs Bot</button>
+            <button class="trn-mode-btn" id="trn-btn-2v2" onclick="setTrnMode('2v2')">👥 2 vs 2 Bot</button>
+        </div>
+        <div class="trn-diff-btns" id="trn-diff-btns">
+            <button class="trn-diff-btn active" data-diff="easy" onclick="setTrnDifficulty('easy')">🟢 Oson</button>
+            <button class="trn-diff-btn" data-diff="medium" onclick="setTrnDifficulty('medium')">🟡 O'rta</button>
+            <button class="trn-diff-btn" data-diff="hard" onclick="setTrnDifficulty('hard')">🔴 Qiyin (ko'proq mukofot!)</button>
+        </div>
+        <div class="trn-player-select" id="trn-slots"></div>
+        <p class="trn-best-record" id="trnBestRecord"></p>
+        <div style="display:flex;gap:14px;flex-wrap:wrap;justify-content:center">
+            <button class="btn" style="font-size:17px;padding:12px 32px;border-color:#ffd700;color:#ffd700;background:rgba(255,215,0,0.1)" onclick="startTournament()">▶ Turnirni boshlash</button>
+            <button class="btn" style="font-size:15px;padding:10px 22px;border-color:#666;color:#aaa" onclick="backToMenu()">← Orqaga</button>
+        </div>
+        <p style="color:#666;font-size:13px;margin-top:14px;text-align:center">10 raund · Har raundda raqib tasodifiy o'zgaradi · Kuchli raqibni yutsangiz — ko'proq 🪙/💎!</p>
+    </div>
+
+    <!-- TURNIR NATIJALARI -->
+    <div id="tournament-results">
+        <h2 id="trn-result-title">🏆 Turnir yakunlandi!</h2>
+        <div class="trn-final-banner" id="trn-final-banner"></div>
+        <table class="trn-rounds-table">
+            <thead><tr><th>#</th><th>Siz</th><th>Raqib</th><th>Natija</th><th>G'olib</th></tr></thead>
+            <tbody id="trn-rounds-body"></tbody>
+        </table>
+        <div style="display:flex;gap:14px;flex-wrap:wrap;justify-content:center">
+            <button class="btn" style="font-size:16px;padding:12px 28px;border-color:#ffd700;color:#ffd700" onclick="openTournament()">🔄 Qayta o'ynash</button>
+            <button class="btn" style="font-size:15px;padding:10px 22px;border-color:#666;color:#aaa" onclick="backToMenu()">← Bosh menyu</button>
+        </div>
+    </div>
+
+    <div class="creator-credit">🐺 Created by Khabib</div>
+
+    <div id="menu">
+        <div class="menu-hud" id="menuHud">
+            <div class="level-badge" id="levelBadge" onclick="openProfile()" title="Kolleksiya darajasi">Lvl 0</div>
+            <div class="currency-pill coin">🪙 <span id="hudCoins">0</span></div>
+            <div class="currency-pill gem">💎 <span id="hudGems">0</span></div>
+            <div class="profile-pill" onclick="openProfile()">👤 <span id="hudNick">O'yinchi</span></div>
+        </div>
+
+        <div class="emblem">
+            <div class="emblem-ring">⚽</div>
+            <div class="emblem-label">PRIME</div>
+        </div>
+        <h1>PRIME FOOTBALL<br><span style="font-size:26px; color:#aaa;">PRIME SEASON</span></h1>
+
+        <div class="season-banner" id="seasonBanner" style="display:none">
+            <div class="sb-title" id="sbTitle"></div>
+            <div class="sb-timer" id="sbTimer"></div>
+            <div class="sb-sub" id="sbSub"></div>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn" onclick="openSelection(1)">👤 1v1 (Botga qarshi)</button>
+            <button class="btn" onclick="openSelection(2)">👥 1v1 (Do'stga qarshi)</button>
+            <button class="btn" style="border-color:#ffd700;color:#ffd700;background:rgba(255,215,0,0.08)" onclick="openTournament()">🏆 Turnir</button>
+        </div>
+        <div class="menu-extra-btns">
+            <button class="btn" style="border-color:#00ffcc;color:#00ffcc" onclick="openShop()">🛒 Do'kon</button>
+            <button class="btn" style="border-color:#cc00ff;color:#e070ff" onclick="openPack()">🎁 Pack</button>
+            <button class="btn" style="border-color:#888;color:#ccc" onclick="openInventory()">🎒 Inventar</button>
+            <button class="btn" style="border-color:#ff3366;color:#ff6688" onclick="openEvents()">🔥 Live Events</button>
+            <button class="btn" style="border-color:#ffd700;color:#ffd700" onclick="openBestPlayers()">👑 Eng Zo'rlar</button>
+        </div>
+    </div>
+
+
+    <div id="selection-screen">
+        <div class="select-header">
+            <button class="back-btn" onclick="backToMenu()">⬅ Orqaga</button>
+            <h2 id="select-title">P1 - Futbolchini tanlang!</h2>
+        </div>
+        <div class="filter-bar">
+            <input type="text" id="searchInput" placeholder="🔍 Futbolchini qidirish..." oninput="renderRosterList()">
+            <div class="tier-filters" id="tierFilters">
+                <button class="filter-btn active" data-tier="ALL" onclick="setTierFilter('ALL')">Hammasi</button>
+                <button class="filter-btn" data-tier="MAX" onclick="setTierFilter('MAX')" title="10 ta qobiliyat">👑 THE BEST</button>
+                <button class="filter-btn" data-tier="PRIME" onclick="setTierFilter('PRIME')" title="Prime mavsumi">🔥 PRIME</button>
+                <button class="filter-btn" data-tier="CELEB" onclick="setTierFilter('CELEB')" title="Celebrities mavsumi">🌟 Celeb</button>
+                <button class="filter-btn" data-tier="TOP10" onclick="setTierFilter('TOP10')" title="5 ta qobiliyat">⭐⭐⭐⭐⭐</button>
+                <button class="filter-btn" data-tier="TOP40" onclick="setTierFilter('TOP40')" title="3 ta qobiliyat">⭐⭐⭐</button>
+                <button class="filter-btn" data-tier="TOP80" onclick="setTierFilter('TOP80')" title="2 ta qobiliyat">⭐⭐</button>
+                <button class="filter-btn" data-tier="TOP130" onclick="setTierFilter('TOP130')" title="1 ta qobiliyat">⭐</button>
+                <button class="filter-btn" data-tier="BASE" onclick="setTierFilter('BASE')" title="Qobiliyatsiz">Oddiy</button>
+            </div>
+        </div>
+        <div class="roster-count" id="rosterCount"></div>
+        <div class="roster" id="roster-container"></div>
+    </div>
+
+    <!-- DO'KON -->
+    <div class="panel-screen" id="shop-screen">
+        <div class="panel-header">
+            <button class="panel-back-btn" onclick="closePanel('shop-screen')">⬅ Orqaga</button>
+            <h2>🛒 Do'kon</h2>
+            <div class="panel-wallet">
+                <div class="currency-pill coin">🪙 <span id="shopCoins">0</span></div>
+                <div class="currency-pill gem">💎 <span id="shopGems">0</span></div>
+            </div>
+        </div>
+        <div class="shop-tabs">
+            <button class="shop-tab active" data-tab="ALL" onclick="setShopTab('ALL')">Hammasi</button>
+            <button class="shop-tab" data-tab="PRIME" onclick="setShopTab('PRIME')">🔥 Prime</button>
+            <button class="shop-tab" data-tab="CELEB" onclick="setShopTab('CELEB')">🌟 Celebrities</button>
+            <button class="shop-tab" data-tab="MAX" onclick="setShopTab('MAX')">👑 Khabib</button>
+        </div>
+        <div class="roster-count" id="shopCount"></div>
+        <div class="shop-grid" id="shop-grid"></div>
+    </div>
+
+    <!-- PACK -->
+    <div class="panel-screen" id="pack-screen">
+        <div class="panel-header">
+            <button class="panel-back-btn" onclick="closePanel('pack-screen')">⬅ Orqaga</button>
+            <h2>🎁 Celebrity Pack</h2>
+            <div class="panel-wallet"><div class="currency-pill gem">💎 <span id="packGems">0</span></div></div>
+        </div>
+        <div class="pack-hero">
+            <div class="pack-box" onclick="openPackNow()">🎁</div>
+            <button class="btn pack-open-btn" id="packOpenBtn" onclick="openPackNow()">Pack ochish (5💎)</button>
+            <p id="packDiscountNote" style="display:none;color:#ffd700;font-size:12px;margin-top:8px">🔥 Bugun arzon pack kuni!</p>
+        </div>
+        <table class="odds-table">
+            <thead><tr><th>Daraja</th><th>Ehtimollik (har urinishda)</th></tr></thead>
+            <tbody>
+                <tr><td>⭐ 1-yulduz</td><td>5%</td></tr>
+                <tr><td>⭐⭐ 2-yulduz</td><td>0.4%</td></tr>
+                <tr><td>⭐⭐⭐ 3-yulduz</td><td>0.03%</td></tr>
+                <tr><td>⭐⭐⭐⭐ 4-yulduz</td><td>0.002%</td></tr>
+                <tr><td>⭐⭐⭐⭐⭐ 5-yulduz</td><td>0.0001%</td></tr>
+            </tbody>
+        </table>
+        <p style="color:#666;font-size:11px;max-width:420px;text-align:center;margin-top:-8px">Faqat Celebrities mavsumi futbolchilari tushadi. Omad kulmasa — ozgina coin qaytariladi.</p>
+        <div class="pack-result" id="pack-result"><div class="pack-result-card" id="pack-result-card"></div></div>
+    </div>
+
+    <!-- INVENTAR -->
+    <div class="panel-screen" id="inventory-screen">
+        <div class="panel-header">
+            <button class="panel-back-btn" onclick="closePanel('inventory-screen')">⬅ Orqaga</button>
+            <h2>🎒 Inventar</h2>
+        </div>
+        <div class="roster-count" id="invCount"></div>
+        <div class="inv-grid" id="inv-grid"></div>
+    </div>
+
+    <!-- PROFIL -->
+    <div class="panel-screen" id="profile-screen">
+        <div class="panel-header">
+            <button class="panel-back-btn" onclick="closePanel('profile-screen')">⬅ Orqaga</button>
+            <h2>👤 Profil</h2>
+        </div>
+        <div style="max-width:420px;width:100%;text-align:center">
+            <div class="collection-level-display">
+                <div class="cld-badge" id="cldBadge">0</div>
+                <div class="cld-label">Kolleksiya darajasi</div>
+            </div>
+
+            <p style="color:#888;font-size:13px;margin-top:20px">Nikingiz</p>
+            <input type="text" id="nickInput" maxlength="16" style="width:100%;padding:12px;border-radius:10px;border:2px solid #333;background:#111;color:#fff;font-size:16px;text-align:center;box-sizing:border-box;font-family:inherit">
+            <button class="btn" style="margin-top:12px;font-size:14px;padding:10px 24px" onclick="saveNickname()">Saqlash</button>
+
+            <div style="margin-top:26px;padding-top:20px;border-top:1px solid #333">
+                <p style="color:#888;font-size:13px">🪙 <span id="profCoins">0</span> coin &nbsp;·&nbsp; 💎 <span id="profGems">0</span> gem &nbsp;·&nbsp; 🎒 <span id="profInvCount">0</span>/<span id="profInvTotal">160</span> futbolchi</p>
+            </div>
+
+            <div style="margin-top:22px;padding-top:18px;border-top:1px solid #333">
+                <p style="color:#888;font-size:13px;margin-bottom:8px">📤 Zaxira kod (o'yin yangilanganda hisobingizni ko'chirish uchun)</p>
+                <button class="btn" style="font-size:13px;padding:9px 20px;border-color:#00ffcc;color:#00ffcc" onclick="exportProfile()">Kodni olish</button>
+                <textarea id="exportBox" readonly style="display:none;width:100%;margin-top:10px;height:64px;font-size:10px;background:#111;color:#0f0;border:1px solid #333;border-radius:8px;padding:8px;box-sizing:border-box;font-family:monospace"></textarea>
+
+                <p style="color:#666;font-size:11px;margin-top:16px">📥 Eski kodni tiklash</p>
+                <textarea id="importBox" placeholder="Kodni shu yerga joylashtiring..." style="width:100%;height:56px;font-size:10px;background:#111;color:#fff;border:1px solid #333;border-radius:8px;padding:8px;box-sizing:border-box;font-family:monospace;margin-top:6px"></textarea>
+                <button class="btn" style="margin-top:8px;font-size:13px;padding:9px 20px;border-color:#ffd700;color:#ffd700" onclick="importProfile()">Tiklash</button>
+            </div>
+
+            <p style="margin-top:22px;padding-top:16px;border-top:1px solid #333;color:#555;font-size:11px">🔒 Profilingiz shu qurilma/hisobingizga bog'langan — qayta kirganda avtomatik yuklanadi. Yangi versiyaga o'tganda kod orqali ko'chiring.</p>
+        </div>
+    </div>
+
+    <!-- LIVE EVENTS / CHALLENGE -->
+    <div class="panel-screen" id="events-screen">
+        <div class="panel-header">
+            <button class="panel-back-btn" onclick="closePanel('events-screen')">⬅ Orqaga</button>
+            <h2>🔥 Live Events & Challenge</h2>
+        </div>
+        <div id="events-list" style="width:100%;max-width:600px"></div>
+    </div>
+
+    <!-- SENSORLI BOSHQARUV (faqat teginganda paydo bo'ladi) -->
+    <div class="touch-joy-zone" id="touchJoyZone"></div>
+    <div class="touch-joy-base" id="touchJoyBase"><div class="touch-joy-stick" id="touchJoyStick"></div></div>
+    <div class="touch-action-btn" id="touchBtnR">R</div>
+    <div class="touch-action-btn" id="touchBtnE">E</div>
+
+    <div id="rotatePrompt">
+        <div class="rp-icon">📱</div>
+        <div class="rp-title">Telefoningizni yon tomonga buring</div>
+        <div class="rp-sub">O'yin maydoni keng — gorizontal holatda ancha qulay bo'ladi</div>
+        <button class="btn" style="margin-top:18px;font-size:13px;padding:10px 22px" onclick="dismissRotate()">Baribir davom etish</button>
+    </div>
+
+    <!-- ENG ZO'RLAR (Best Players / Hall of Fame) -->
+    <div class="panel-screen" id="bestplayers-screen">
+        <div class="panel-header">
+            <button class="panel-back-btn" onclick="closePanel('bestplayers-screen')">⬅ Orqaga</button>
+            <h2>👑 Eng Zo'rlar</h2>
+        </div>
+        <p style="color:#666;font-size:12px;max-width:500px;text-align:center;margin-top:-6px">Barcha davrlarning eng kuchli futbolchilari — kuchiga qarab tartiblangan</p>
+        <div id="bestplayers-list" style="width:100%;max-width:700px;padding:14px 0 30px"></div>
+    </div>
+
+    <!-- MATCH INTRO (VS animatsiyasi) -->
+    <div id="matchIntro">
+        <div class="mi-side mi-left"><div class="mi-name" id="miP1Name"></div></div>
+        <div class="mi-vs">VS</div>
+        <div class="mi-side mi-right"><div class="mi-name" id="miP2Name"></div></div>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+
+    <script>
+        // === OYINCHILAR BAZASI (150 ta) ===
+        // Qobilyatlar (jami 10 ta): 'pushka','speed_boost','goalkeeper','dribbler','finisher','wall' — oddiy futbol qobiliyatlari (rol bo'yicha beriladi)
+        //   'takedown','magnet','unstoppable','overdrive' — FAQAT KHABIBDA (kurashchi qobiliyatlari, "the best of the best")
+        const db = [
+            // ========== MAX DARAJA - THE BEST OF THE BEST (1 ta, 10 qobiliyat) ==========
+            {"id":"khabib","name":"Khabib","color":"#ffd700","glow":"#ffffff","tier":"MAX","role":"LEGEND","stats":{"speed":12.5,"power":4.0,"size":45},"abilities":["pushka","speed_boost","goalkeeper","dribbler","finisher","wall","takedown","magnet","unstoppable","overdrive"]},
+            // ========== TOP 10 ENG ZO'R LEGENDALAR (5 tadan qobiliyat) ==========
+            {"id":"ronaldo","name":"C. Ronaldo","color":"#fff","glow":"#ff0000","tier":"TOP10","role":"FW","stats":{"speed":9,"power":3.5,"size":35},"abilities":["pushka","speed_boost","finisher","dribbler","wall"]},
+            {"id":"yashin","name":"L. Yashin","color":"#000","glow":"#aaaaaa","tier":"TOP10","role":"GK","stats":{"speed":6,"power":3.0,"size":55},"abilities":["goalkeeper","wall","finisher","speed_boost","dribbler"]},
+            {"id":"messi","name":"L. Messi","color":"#87CEEB","glow":"#ffffff","tier":"TOP10","role":"FW","stats":{"speed":9.5,"power":2.5,"size":32},"abilities":["dribbler","finisher","speed_boost","pushka","wall"]},
+            {"id":"pele","name":"Pelé","color":"#ffff00","glow":"#00aa00","tier":"TOP10","role":"FW","stats":{"speed":9,"power":3.0,"size":35},"abilities":["dribbler","finisher","speed_boost","pushka","wall"]},
+            {"id":"d_maradona","name":"D. Maradona","color":"hsl(325, 65%, 55%)","glow":"hsl(325, 90%, 65%)","tier":"TOP10","role":"FW","stats":{"speed":9.4,"power":3.1,"size":29},"abilities":["pushka","finisher","speed_boost","dribbler","wall"]},
+            {"id":"z_zidane","name":"Z. Zidane","color":"hsl(102, 65%, 55%)","glow":"hsl(102, 90%, 65%)","tier":"TOP10","role":"MF","stats":{"speed":9.2,"power":2.9,"size":33},"abilities":["dribbler","speed_boost","pushka","wall","finisher"]},
+            {"id":"j_cruyff","name":"J. Cruyff","color":"hsl(239, 65%, 55%)","glow":"hsl(239, 90%, 65%)","tier":"TOP10","role":"FW","stats":{"speed":9.1,"power":3.1,"size":32},"abilities":["pushka","finisher","speed_boost","dribbler","wall"]},
+            {"id":"ronaldinho","name":"Ronaldinho","color":"hsl(16, 65%, 55%)","glow":"hsl(16, 90%, 65%)","tier":"TOP10","role":"MF","stats":{"speed":9.4,"power":2.8,"size":35},"abilities":["dribbler","speed_boost","pushka","wall","finisher"]},
+            {"id":"f_beckenbauer","name":"F. Beckenbauer","color":"hsl(153, 65%, 55%)","glow":"hsl(153, 90%, 65%)","tier":"TOP10","role":"DF","stats":{"speed":8.5,"power":2.8,"size":42},"abilities":["wall","pushka","speed_boost","dribbler","goalkeeper"]},
+            {"id":"ronaldo_nazario","name":"Ronaldo Nazário","color":"hsl(290, 65%, 55%)","glow":"hsl(290, 90%, 65%)","tier":"TOP10","role":"FW","stats":{"speed":9.0,"power":3.4,"size":33},"abilities":["pushka","finisher","speed_boost","dribbler","wall"]},
+            // ========== KEYINGI 30 TA YULDUZ (3 tadan qobiliyat) ==========
+            {"id":"mbappe","name":"K. Mbappe","color":"#0000ff","glow":"#ff0000","tier":"TOP40","role":"FW","stats":{"speed":10.5,"power":2.2,"size":35},"abilities":["speed_boost","finisher","dribbler"]},
+            {"id":"haaland","name":"E. Haaland","color":"#00ffff","glow":"#ffffff","tier":"TOP40","role":"FW","stats":{"speed":8.5,"power":3.2,"size":40},"abilities":["pushka","wall","finisher"]},
+            {"id":"k_de_bruyne","name":"K. De Bruyne","color":"hsl(341, 65%, 55%)","glow":"hsl(341, 90%, 65%)","tier":"TOP40","role":"MF","stats":{"speed":8.4,"power":2.5,"size":31},"abilities":["dribbler","speed_boost","pushka"]},
+            {"id":"l_modric","name":"L. Modrić","color":"hsl(118, 65%, 55%)","glow":"hsl(118, 90%, 65%)","tier":"TOP40","role":"MF","stats":{"speed":7.9,"power":2.5,"size":33},"abilities":["dribbler","speed_boost","pushka"]},
+            {"id":"r_lewandowski","name":"R. Lewandowski","color":"hsl(255, 65%, 55%)","glow":"hsl(255, 90%, 65%)","tier":"TOP40","role":"FW","stats":{"speed":8.9,"power":3.1,"size":28},"abilities":["pushka","finisher","speed_boost"]},
+            {"id":"m_salah","name":"M. Salah","color":"hsl(32, 65%, 55%)","glow":"hsl(32, 90%, 65%)","tier":"TOP40","role":"FW","stats":{"speed":8.6,"power":2.9,"size":31},"abilities":["pushka","finisher","speed_boost"]},
+            {"id":"k_benzema","name":"K. Benzema","color":"hsl(169, 65%, 55%)","glow":"hsl(169, 90%, 65%)","tier":"TOP40","role":"FW","stats":{"speed":8.5,"power":2.8,"size":30},"abilities":["pushka","finisher","speed_boost"]},
+            {"id":"s_ramos","name":"S. Ramos","color":"hsl(306, 65%, 55%)","glow":"hsl(306, 90%, 65%)","tier":"TOP40","role":"DF","stats":{"speed":7.9,"power":2.4,"size":43},"abilities":["wall","pushka","speed_boost"]},
+            {"id":"m_neuer","name":"M. Neuer","color":"hsl(83, 65%, 55%)","glow":"hsl(83, 90%, 65%)","tier":"TOP40","role":"GK","stats":{"speed":7.0,"power":2.4,"size":49},"abilities":["goalkeeper","wall","speed_boost"]},
+            {"id":"t_henry","name":"T. Henry","color":"hsl(220, 65%, 55%)","glow":"hsl(220, 90%, 65%)","tier":"TOP40","role":"FW","stats":{"speed":8.7,"power":3.1,"size":29},"abilities":["pushka","finisher","speed_boost"]},
+            {"id":"a_pirlo","name":"A. Pirlo","color":"hsl(357, 65%, 55%)","glow":"hsl(357, 90%, 65%)","tier":"TOP40","role":"MF","stats":{"speed":8.1,"power":2.5,"size":35},"abilities":["dribbler","speed_boost","pushka"]},
+            {"id":"xavi","name":"Xavi","color":"hsl(134, 65%, 55%)","glow":"hsl(134, 90%, 65%)","tier":"TOP40","role":"MF","stats":{"speed":8.6,"power":2.4,"size":31},"abilities":["dribbler","speed_boost","pushka"]},
+            {"id":"iniesta","name":"Iniesta","color":"hsl(271, 65%, 55%)","glow":"hsl(271, 90%, 65%)","tier":"TOP40","role":"MF","stats":{"speed":8.5,"power":2.5,"size":30},"abilities":["dribbler","speed_boost","pushka"]},
+            {"id":"p_maldini","name":"P. Maldini","color":"hsl(48, 65%, 55%)","glow":"hsl(48, 90%, 65%)","tier":"TOP40","role":"DF","stats":{"speed":7.3,"power":2.8,"size":42},"abilities":["wall","pushka","speed_boost"]},
+            {"id":"r_carlos","name":"R. Carlos","color":"hsl(185, 65%, 55%)","glow":"hsl(185, 90%, 65%)","tier":"TOP40","role":"DF","stats":{"speed":7.9,"power":2.6,"size":39},"abilities":["wall","pushka","speed_boost"]},
+            {"id":"d_beckham","name":"D. Beckham","color":"hsl(322, 65%, 55%)","glow":"hsl(322, 90%, 65%)","tier":"TOP40","role":"MF","stats":{"speed":8.5,"power":2.5,"size":34},"abilities":["dribbler","speed_boost","pushka"]},
+            {"id":"w_rooney","name":"W. Rooney","color":"hsl(99, 65%, 55%)","glow":"hsl(99, 90%, 65%)","tier":"TOP40","role":"FW","stats":{"speed":8.7,"power":3.1,"size":31},"abilities":["pushka","finisher","speed_boost"]},
+            {"id":"s_gerrard","name":"S. Gerrard","color":"hsl(236, 65%, 55%)","glow":"hsl(236, 90%, 65%)","tier":"TOP40","role":"MF","stats":{"speed":8.5,"power":2.5,"size":30},"abilities":["dribbler","speed_boost","pushka"]},
+            {"id":"d_drogba","name":"D. Drogba","color":"hsl(13, 65%, 55%)","glow":"hsl(13, 90%, 65%)","tier":"TOP40","role":"FW","stats":{"speed":8.3,"power":3.1,"size":32},"abilities":["pushka","finisher","speed_boost"]},
+            {"id":"s_eto_o","name":"S. Eto'o","color":"hsl(150, 65%, 55%)","glow":"hsl(150, 90%, 65%)","tier":"TOP40","role":"FW","stats":{"speed":8.7,"power":3.0,"size":30},"abilities":["pushka","finisher","speed_boost"]},
+            {"id":"g_best","name":"G. Best","color":"hsl(287, 65%, 55%)","glow":"hsl(287, 90%, 65%)","tier":"TOP40","role":"FW","stats":{"speed":8.8,"power":2.8,"size":32},"abilities":["pushka","finisher","speed_boost"]},
+            {"id":"eusebio","name":"Eusébio","color":"hsl(64, 65%, 55%)","glow":"hsl(64, 90%, 65%)","tier":"TOP40","role":"FW","stats":{"speed":8.5,"power":2.7,"size":33},"abilities":["pushka","finisher","speed_boost"]},
+            {"id":"m_platini","name":"M. Platini","color":"hsl(201, 65%, 55%)","glow":"hsl(201, 90%, 65%)","tier":"TOP40","role":"MF","stats":{"speed":8.5,"power":2.7,"size":32},"abilities":["dribbler","speed_boost","pushka"]},
+            {"id":"di_stefano","name":"Di Stéfano","color":"hsl(338, 65%, 55%)","glow":"hsl(338, 90%, 65%)","tier":"TOP40","role":"FW","stats":{"speed":8.3,"power":2.6,"size":33},"abilities":["pushka","finisher","speed_boost"]},
+            {"id":"garrincha","name":"Garrincha","color":"hsl(115, 65%, 55%)","glow":"hsl(115, 90%, 65%)","tier":"TOP40","role":"FW","stats":{"speed":8.5,"power":2.9,"size":34},"abilities":["pushka","finisher","speed_boost"]},
+            {"id":"g_buffon","name":"G. Buffon","color":"hsl(252, 65%, 55%)","glow":"hsl(252, 90%, 65%)","tier":"TOP40","role":"GK","stats":{"speed":6.7,"power":2.1,"size":47},"abilities":["goalkeeper","wall","speed_boost"]},
+            {"id":"i_casillas","name":"I. Casillas","color":"hsl(29, 65%, 55%)","glow":"hsl(29, 90%, 65%)","tier":"TOP40","role":"GK","stats":{"speed":6.9,"power":2.5,"size":49},"abilities":["goalkeeper","wall","speed_boost"]},
+            {"id":"x_alonso","name":"X. Alonso","color":"hsl(166, 65%, 55%)","glow":"hsl(166, 90%, 65%)","tier":"TOP40","role":"MF","stats":{"speed":8.0,"power":2.3,"size":34},"abilities":["dribbler","speed_boost","pushka"]},
+            {"id":"f_rijkaard","name":"F. Rijkaard","color":"hsl(303, 65%, 55%)","glow":"hsl(303, 90%, 65%)","tier":"TOP40","role":"MF","stats":{"speed":8.7,"power":2.7,"size":33},"abilities":["dribbler","speed_boost","pushka"]},
+            {"id":"m_van_basten","name":"M. van Basten","color":"hsl(80, 65%, 55%)","glow":"hsl(80, 90%, 65%)","tier":"TOP40","role":"FW","stats":{"speed":9.0,"power":2.7,"size":28},"abilities":["pushka","finisher","speed_boost"]},
+            // ========== KEYINGI 40 TA ZO'R O'YINCHI (2 tadan qobiliyat) ==========
+            {"id":"neymar","name":"Neymar Jr","color":"#ffff00","glow":"#00ff00","tier":"TOP80","role":"FW","stats":{"speed":8.5,"power":2.0,"size":33},"abilities":["dribbler","speed_boost"]},
+            {"id":"vandijk","name":"V. Dijk","color":"#ff0000","glow":"#ffffff","tier":"TOP80","role":"DF","stats":{"speed":6.5,"power":2.5,"size":42},"abilities":["wall","goalkeeper"]},
+            {"id":"h_kane","name":"H. Kane","color":"hsl(131, 65%, 55%)","glow":"hsl(131, 90%, 65%)","tier":"TOP80","role":"FW","stats":{"speed":7.7,"power":2.3,"size":30},"abilities":["pushka","finisher"]},
+            {"id":"a_griezmann","name":"A. Griezmann","color":"hsl(268, 65%, 55%)","glow":"hsl(268, 90%, 65%)","tier":"TOP80","role":"FW","stats":{"speed":7.8,"power":2.7,"size":29},"abilities":["pushka","finisher"]},
+            {"id":"l_suarez","name":"L. Suárez","color":"hsl(45, 65%, 55%)","glow":"hsl(45, 90%, 65%)","tier":"TOP80","role":"FW","stats":{"speed":7.6,"power":2.3,"size":34},"abilities":["pushka","finisher"]},
+            {"id":"g_bale","name":"G. Bale","color":"hsl(182, 65%, 55%)","glow":"hsl(182, 90%, 65%)","tier":"TOP80","role":"FW","stats":{"speed":8.2,"power":2.4,"size":32},"abilities":["pushka","finisher"]},
+            {"id":"t_kroos","name":"T. Kroos","color":"hsl(319, 65%, 55%)","glow":"hsl(319, 90%, 65%)","tier":"TOP80","role":"MF","stats":{"speed":7.2,"power":2.1,"size":35},"abilities":["dribbler","speed_boost"]},
+            {"id":"s_aguero","name":"S. Agüero","color":"hsl(96, 65%, 55%)","glow":"hsl(96, 90%, 65%)","tier":"TOP80","role":"FW","stats":{"speed":7.9,"power":2.4,"size":32},"abilities":["pushka","finisher"]},
+            {"id":"z_ibrahimovic","name":"Z. Ibrahimović","color":"hsl(233, 65%, 55%)","glow":"hsl(233, 90%, 65%)","tier":"TOP80","role":"FW","stats":{"speed":7.5,"power":2.6,"size":31},"abilities":["pushka","finisher"]},
+            {"id":"r_falcao","name":"R. Falcao","color":"hsl(10, 65%, 55%)","glow":"hsl(10, 90%, 65%)","tier":"TOP80","role":"FW","stats":{"speed":8.1,"power":2.6,"size":34},"abilities":["pushka","finisher"]},
+            {"id":"e_cavani","name":"E. Cavani","color":"hsl(147, 65%, 55%)","glow":"hsl(147, 90%, 65%)","tier":"TOP80","role":"FW","stats":{"speed":8.2,"power":2.4,"size":30},"abilities":["pushka","finisher"]},
+            {"id":"a_robben","name":"A. Robben","color":"hsl(284, 65%, 55%)","glow":"hsl(284, 90%, 65%)","tier":"TOP80","role":"FW","stats":{"speed":8.1,"power":2.3,"size":30},"abilities":["pushka","finisher"]},
+            {"id":"f_ribery","name":"F. Ribéry","color":"hsl(61, 65%, 55%)","glow":"hsl(61, 90%, 65%)","tier":"TOP80","role":"MF","stats":{"speed":7.5,"power":1.9,"size":32},"abilities":["dribbler","speed_boost"]},
+            {"id":"p_cech","name":"P. Čech","color":"hsl(198, 65%, 55%)","glow":"hsl(198, 90%, 65%)","tier":"TOP80","role":"GK","stats":{"speed":6.0,"power":2.2,"size":48},"abilities":["goalkeeper","wall"]},
+            {"id":"d_de_gea","name":"D. de Gea","color":"hsl(335, 65%, 55%)","glow":"hsl(335, 90%, 65%)","tier":"TOP80","role":"GK","stats":{"speed":6.1,"power":1.8,"size":51},"abilities":["goalkeeper","wall"]},
+            {"id":"alisson","name":"Alisson","color":"hsl(112, 65%, 55%)","glow":"hsl(112, 90%, 65%)","tier":"TOP80","role":"GK","stats":{"speed":6.4,"power":1.9,"size":51},"abilities":["goalkeeper","wall"]},
+            {"id":"ederson","name":"Ederson","color":"hsl(249, 65%, 55%)","glow":"hsl(249, 90%, 65%)","tier":"TOP80","role":"GK","stats":{"speed":5.9,"power":1.8,"size":48},"abilities":["goalkeeper","wall"]},
+            {"id":"ter_stegen","name":"Ter Stegen","color":"hsl(26, 65%, 55%)","glow":"hsl(26, 90%, 65%)","tier":"TOP80","role":"GK","stats":{"speed":5.8,"power":1.8,"size":49},"abilities":["goalkeeper","wall"]},
+            {"id":"j_oblak","name":"J. Oblak","color":"hsl(163, 65%, 55%)","glow":"hsl(163, 90%, 65%)","tier":"TOP80","role":"GK","stats":{"speed":6.1,"power":2.0,"size":49},"abilities":["goalkeeper","wall"]},
+            {"id":"t_courtois","name":"T. Courtois","color":"hsl(300, 65%, 55%)","glow":"hsl(300, 90%, 65%)","tier":"TOP80","role":"GK","stats":{"speed":6.4,"power":2.0,"size":50},"abilities":["goalkeeper","wall"]},
+            {"id":"n_kante","name":"N. Kanté","color":"hsl(77, 65%, 55%)","glow":"hsl(77, 90%, 65%)","tier":"TOP80","role":"MF","stats":{"speed":7.3,"power":2.1,"size":36},"abilities":["dribbler","speed_boost"]},
+            {"id":"casemiro","name":"Casemiro","color":"hsl(214, 65%, 55%)","glow":"hsl(214, 90%, 65%)","tier":"TOP80","role":"MF","stats":{"speed":7.5,"power":2.4,"size":33},"abilities":["dribbler","speed_boost"]},
+            {"id":"busquets","name":"Busquets","color":"hsl(351, 65%, 55%)","glow":"hsl(351, 90%, 65%)","tier":"TOP80","role":"MF","stats":{"speed":7.8,"power":2.3,"size":34},"abilities":["dribbler","speed_boost"]},
+            {"id":"p_pogba","name":"P. Pogba","color":"hsl(128, 65%, 55%)","glow":"hsl(128, 90%, 65%)","tier":"TOP80","role":"MF","stats":{"speed":7.4,"power":2.3,"size":34},"abilities":["dribbler","speed_boost"]},
+            {"id":"di_maria","name":"Di María","color":"hsl(265, 65%, 55%)","glow":"hsl(265, 90%, 65%)","tier":"TOP80","role":"MF","stats":{"speed":7.6,"power":2.2,"size":36},"abilities":["dribbler","speed_boost"]},
+            {"id":"jorginho","name":"Jorginho","color":"hsl(42, 65%, 55%)","glow":"hsl(42, 90%, 65%)","tier":"TOP80","role":"MF","stats":{"speed":7.9,"power":2.1,"size":36},"abilities":["dribbler","speed_boost"]},
+            {"id":"b_fernandes","name":"B. Fernandes","color":"hsl(179, 65%, 55%)","glow":"hsl(179, 90%, 65%)","tier":"TOP80","role":"MF","stats":{"speed":7.9,"power":2.0,"size":31},"abilities":["dribbler","speed_boost"]},
+            {"id":"p_foden","name":"P. Foden","color":"hsl(316, 65%, 55%)","glow":"hsl(316, 90%, 65%)","tier":"TOP80","role":"MF","stats":{"speed":7.7,"power":2.2,"size":32},"abilities":["dribbler","speed_boost"]},
+            {"id":"j_bellingham","name":"J. Bellingham","color":"hsl(93, 65%, 55%)","glow":"hsl(93, 90%, 65%)","tier":"TOP80","role":"MF","stats":{"speed":7.8,"power":2.2,"size":34},"abilities":["dribbler","speed_boost"]},
+            {"id":"pedri","name":"Pedri","color":"hsl(230, 65%, 55%)","glow":"hsl(230, 90%, 65%)","tier":"TOP80","role":"MF","stats":{"speed":7.9,"power":2.3,"size":33},"abilities":["dribbler","speed_boost"]},
+            {"id":"gavi","name":"Gavi","color":"hsl(7, 65%, 55%)","glow":"hsl(7, 90%, 65%)","tier":"TOP80","role":"MF","stats":{"speed":8.0,"power":2.1,"size":34},"abilities":["dribbler","speed_boost"]},
+            {"id":"vinicius_jr","name":"Vinícius Jr","color":"hsl(144, 65%, 55%)","glow":"hsl(144, 90%, 65%)","tier":"TOP80","role":"FW","stats":{"speed":7.8,"power":2.6,"size":34},"abilities":["pushka","finisher"]},
+            {"id":"rodrygo","name":"Rodrygo","color":"hsl(281, 65%, 55%)","glow":"hsl(281, 90%, 65%)","tier":"TOP80","role":"FW","stats":{"speed":7.8,"power":2.3,"size":35},"abilities":["pushka","finisher"]},
+            {"id":"f_valverde","name":"F. Valverde","color":"hsl(58, 65%, 55%)","glow":"hsl(58, 90%, 65%)","tier":"TOP80","role":"MF","stats":{"speed":8.0,"power":2.3,"size":36},"abilities":["dribbler","speed_boost"]},
+            {"id":"d_rice","name":"D. Rice","color":"hsl(195, 65%, 55%)","glow":"hsl(195, 90%, 65%)","tier":"TOP80","role":"MF","stats":{"speed":7.5,"power":2.2,"size":33},"abilities":["dribbler","speed_boost"]},
+            {"id":"b_saka","name":"B. Saka","color":"hsl(332, 65%, 55%)","glow":"hsl(332, 90%, 65%)","tier":"TOP80","role":"FW","stats":{"speed":7.9,"power":2.4,"size":34},"abilities":["pushka","finisher"]},
+            {"id":"j_musiala","name":"J. Musiala","color":"hsl(109, 65%, 55%)","glow":"hsl(109, 90%, 65%)","tier":"TOP80","role":"MF","stats":{"speed":7.5,"power":2.0,"size":32},"abilities":["dribbler","speed_boost"]},
+            {"id":"v_osimhen","name":"V. Osimhen","color":"hsl(246, 65%, 55%)","glow":"hsl(246, 90%, 65%)","tier":"TOP80","role":"FW","stats":{"speed":7.7,"power":2.3,"size":29},"abilities":["pushka","finisher"]},
+            {"id":"kvaratskhelia","name":"Kvaratskhelia","color":"hsl(23, 65%, 55%)","glow":"hsl(23, 90%, 65%)","tier":"TOP80","role":"FW","stats":{"speed":7.7,"power":2.3,"size":35},"abilities":["pushka","finisher"]},
+            {"id":"son_heung_min","name":"Son Heung-min","color":"hsl(160, 65%, 55%)","glow":"hsl(160, 90%, 65%)","tier":"TOP80","role":"FW","stats":{"speed":8.1,"power":2.6,"size":32},"abilities":["pushka","finisher"]},
+            // ========== KEYINGI 50 TA (1 tadan qobiliyat) ==========
+            {"id":"rashford","name":"Rashford","color":"#da291c","glow":"#fff","tier":"TOP130","role":"FW","stats":{"speed":8.5,"power":2.0,"size":35},"abilities":["speed_boost"]},
+            {"id":"r_sterling","name":"R. Sterling","color":"hsl(74, 65%, 55%)","glow":"hsl(74, 90%, 65%)","tier":"TOP130","role":"FW","stats":{"speed":7.4,"power":2.0,"size":30},"abilities":["pushka"]},
+            {"id":"j_grealish","name":"J. Grealish","color":"hsl(211, 65%, 55%)","glow":"hsl(211, 90%, 65%)","tier":"TOP130","role":"MF","stats":{"speed":6.9,"power":1.8,"size":33},"abilities":["dribbler"]},
+            {"id":"m_mount","name":"M. Mount","color":"hsl(348, 65%, 55%)","glow":"hsl(348, 90%, 65%)","tier":"TOP130","role":"MF","stats":{"speed":6.7,"power":1.9,"size":33},"abilities":["dribbler"]},
+            {"id":"k_walker","name":"K. Walker","color":"hsl(125, 65%, 55%)","glow":"hsl(125, 90%, 65%)","tier":"TOP130","role":"DF","stats":{"speed":6.3,"power":2.0,"size":39},"abilities":["wall"]},
+            {"id":"alexander_arnold","name":"Alexander-Arnold","color":"hsl(262, 65%, 55%)","glow":"hsl(262, 90%, 65%)","tier":"TOP130","role":"DF","stats":{"speed":6.2,"power":2.2,"size":42},"abilities":["wall"]},
+            {"id":"a_robertson","name":"A. Robertson","color":"hsl(39, 65%, 55%)","glow":"hsl(39, 90%, 65%)","tier":"TOP130","role":"DF","stats":{"speed":6.5,"power":2.1,"size":41},"abilities":["wall"]},
+            {"id":"j_stones","name":"J. Stones","color":"hsl(176, 65%, 55%)","glow":"hsl(176, 90%, 65%)","tier":"TOP130","role":"DF","stats":{"speed":6.5,"power":1.8,"size":45},"abilities":["wall"]},
+            {"id":"ruben_dias","name":"Rúben Dias","color":"hsl(313, 65%, 55%)","glow":"hsl(313, 90%, 65%)","tier":"TOP130","role":"DF","stats":{"speed":6.2,"power":2.1,"size":39},"abilities":["wall"]},
+            {"id":"gvardiol","name":"Gvardiol","color":"hsl(90, 65%, 55%)","glow":"hsl(90, 90%, 65%)","tier":"TOP130","role":"DF","stats":{"speed":6.5,"power":2.1,"size":42},"abilities":["wall"]},
+            {"id":"w_saliba","name":"W. Saliba","color":"hsl(227, 65%, 55%)","glow":"hsl(227, 90%, 65%)","tier":"TOP130","role":"DF","stats":{"speed":6.0,"power":1.8,"size":39},"abilities":["wall"]},
+            {"id":"tchouameni","name":"Tchouaméni","color":"hsl(4, 65%, 55%)","glow":"hsl(4, 90%, 65%)","tier":"TOP130","role":"MF","stats":{"speed":7.0,"power":2.0,"size":33},"abilities":["dribbler"]},
+            {"id":"camavinga","name":"Camavinga","color":"hsl(141, 65%, 55%)","glow":"hsl(141, 90%, 65%)","tier":"TOP130","role":"MF","stats":{"speed":7.2,"power":1.7,"size":37},"abilities":["dribbler"]},
+            {"id":"e_fernandez","name":"E. Fernández","color":"hsl(278, 65%, 55%)","glow":"hsl(278, 90%, 65%)","tier":"TOP130","role":"MF","stats":{"speed":7.2,"power":1.7,"size":34},"abilities":["dribbler"]},
+            {"id":"j_alvarez","name":"J. Álvarez","color":"hsl(55, 65%, 55%)","glow":"hsl(55, 90%, 65%)","tier":"TOP130","role":"FW","stats":{"speed":7.2,"power":2.2,"size":31},"abilities":["pushka"]},
+            {"id":"lautaro","name":"Lautaro","color":"hsl(192, 65%, 55%)","glow":"hsl(192, 90%, 65%)","tier":"TOP130","role":"FW","stats":{"speed":7.6,"power":2.1,"size":34},"abilities":["pushka"]},
+            {"id":"gakpo","name":"Gakpo","color":"hsl(329, 65%, 55%)","glow":"hsl(329, 90%, 65%)","tier":"TOP130","role":"FW","stats":{"speed":7.5,"power":2.2,"size":34},"abilities":["pushka"]},
+            {"id":"d_nunez","name":"D. Núñez","color":"hsl(106, 65%, 55%)","glow":"hsl(106, 90%, 65%)","tier":"TOP130","role":"FW","stats":{"speed":6.9,"power":2.1,"size":35},"abilities":["pushka"]},
+            {"id":"rakitic","name":"Rakitić","color":"hsl(243, 65%, 55%)","glow":"hsl(243, 90%, 65%)","tier":"TOP130","role":"MF","stats":{"speed":7.0,"power":1.7,"size":37},"abilities":["dribbler"]},
+            {"id":"verratti","name":"Verratti","color":"hsl(20, 65%, 55%)","glow":"hsl(20, 90%, 65%)","tier":"TOP130","role":"MF","stats":{"speed":6.7,"power":1.7,"size":35},"abilities":["dribbler"]},
+            {"id":"m_reus","name":"M. Reus","color":"hsl(157, 65%, 55%)","glow":"hsl(157, 90%, 65%)","tier":"TOP130","role":"MF","stats":{"speed":6.6,"power":1.8,"size":34},"abilities":["dribbler"]},
+            {"id":"t_muller","name":"T. Müller","color":"hsl(294, 65%, 55%)","glow":"hsl(294, 90%, 65%)","tier":"TOP130","role":"FW","stats":{"speed":7.2,"power":2.4,"size":33},"abilities":["pushka"]},
+            {"id":"kimmich","name":"Kimmich","color":"hsl(71, 65%, 55%)","glow":"hsl(71, 90%, 65%)","tier":"TOP130","role":"MF","stats":{"speed":6.8,"power":1.8,"size":31},"abilities":["dribbler"]},
+            {"id":"goretzka","name":"Goretzka","color":"hsl(208, 65%, 55%)","glow":"hsl(208, 90%, 65%)","tier":"TOP130","role":"MF","stats":{"speed":7.0,"power":1.6,"size":32},"abilities":["dribbler"]},
+            {"id":"gundogan","name":"Gündoğan","color":"hsl(345, 65%, 55%)","glow":"hsl(345, 90%, 65%)","tier":"TOP130","role":"MF","stats":{"speed":7.1,"power":2.1,"size":34},"abilities":["dribbler"]},
+            {"id":"hummels","name":"Hummels","color":"hsl(122, 65%, 55%)","glow":"hsl(122, 90%, 65%)","tier":"TOP130","role":"DF","stats":{"speed":5.8,"power":2.1,"size":44},"abilities":["wall"]},
+            {"id":"boateng","name":"Boateng","color":"hsl(259, 65%, 55%)","glow":"hsl(259, 90%, 65%)","tier":"TOP130","role":"DF","stats":{"speed":6.1,"power":2.2,"size":41},"abilities":["wall"]},
+            {"id":"d_alaba","name":"D. Alaba","color":"hsl(36, 65%, 55%)","glow":"hsl(36, 90%, 65%)","tier":"TOP130","role":"DF","stats":{"speed":6.3,"power":1.9,"size":44},"abilities":["wall"]},
+            {"id":"a_davies","name":"A. Davies","color":"hsl(173, 65%, 55%)","glow":"hsl(173, 90%, 65%)","tier":"TOP130","role":"DF","stats":{"speed":6.3,"power":2.2,"size":45},"abilities":["wall"]},
+            {"id":"hakimi","name":"Hakimi","color":"hsl(310, 65%, 55%)","glow":"hsl(310, 90%, 65%)","tier":"TOP130","role":"DF","stats":{"speed":6.1,"power":1.9,"size":39},"abilities":["wall"]},
+            {"id":"t_hernandez","name":"T. Hernández","color":"hsl(87, 65%, 55%)","glow":"hsl(87, 90%, 65%)","tier":"TOP130","role":"DF","stats":{"speed":6.2,"power":1.9,"size":45},"abilities":["wall"]},
+            {"id":"skriniar","name":"Škriniar","color":"hsl(224, 65%, 55%)","glow":"hsl(224, 90%, 65%)","tier":"TOP130","role":"DF","stats":{"speed":6.2,"power":2.2,"size":41},"abilities":["wall"]},
+            {"id":"koulibaly","name":"Koulibaly","color":"hsl(1, 65%, 55%)","glow":"hsl(1, 90%, 65%)","tier":"TOP130","role":"DF","stats":{"speed":6.1,"power":2.1,"size":43},"abilities":["wall"]},
+            {"id":"chiellini","name":"Chiellini","color":"hsl(138, 65%, 55%)","glow":"hsl(138, 90%, 65%)","tier":"TOP130","role":"DF","stats":{"speed":6.5,"power":2.0,"size":41},"abilities":["wall"]},
+            {"id":"bonucci","name":"Bonucci","color":"hsl(275, 65%, 55%)","glow":"hsl(275, 90%, 65%)","tier":"TOP130","role":"DF","stats":{"speed":6.0,"power":1.8,"size":45},"abilities":["wall"]},
+            {"id":"immobile","name":"Immobile","color":"hsl(52, 65%, 55%)","glow":"hsl(52, 90%, 65%)","tier":"TOP130","role":"FW","stats":{"speed":7.2,"power":2.2,"size":30},"abilities":["pushka"]},
+            {"id":"insigne","name":"Insigne","color":"hsl(189, 65%, 55%)","glow":"hsl(189, 90%, 65%)","tier":"TOP130","role":"FW","stats":{"speed":6.8,"power":2.0,"size":33},"abilities":["pushka"]},
+            {"id":"f_chiesa","name":"F. Chiesa","color":"hsl(326, 65%, 55%)","glow":"hsl(326, 90%, 65%)","tier":"TOP130","role":"FW","stats":{"speed":7.5,"power":2.3,"size":31},"abilities":["pushka"]},
+            {"id":"barella","name":"Barella","color":"hsl(103, 65%, 55%)","glow":"hsl(103, 90%, 65%)","tier":"TOP130","role":"MF","stats":{"speed":6.6,"power":2.1,"size":34},"abilities":["dribbler"]},
+            {"id":"marcelo","name":"Marcelo","color":"hsl(240, 65%, 55%)","glow":"hsl(240, 90%, 65%)","tier":"TOP130","role":"DF","stats":{"speed":6.4,"power":1.9,"size":42},"abilities":["wall"]},
+            {"id":"dani_alves","name":"Dani Alves","color":"hsl(17, 65%, 55%)","glow":"hsl(17, 90%, 65%)","tier":"TOP130","role":"DF","stats":{"speed":6.1,"power":2.1,"size":39},"abilities":["wall"]},
+            {"id":"pique","name":"Piqué","color":"hsl(154, 65%, 55%)","glow":"hsl(154, 90%, 65%)","tier":"TOP130","role":"DF","stats":{"speed":6.5,"power":2.1,"size":41},"abilities":["wall"]},
+            {"id":"mascherano","name":"Mascherano","color":"hsl(291, 65%, 55%)","glow":"hsl(291, 90%, 65%)","tier":"TOP130","role":"DF","stats":{"speed":6.4,"power":1.8,"size":42},"abilities":["wall"]},
+            {"id":"d_forlan","name":"D. Forlán","color":"hsl(68, 65%, 55%)","glow":"hsl(68, 90%, 65%)","tier":"TOP130","role":"FW","stats":{"speed":6.9,"power":2.3,"size":32},"abilities":["pushka"]},
+            {"id":"a_sanchez","name":"A. Sánchez","color":"hsl(205, 65%, 55%)","glow":"hsl(205, 90%, 65%)","tier":"TOP130","role":"FW","stats":{"speed":7.1,"power":2.0,"size":35},"abilities":["pushka"]},
+            {"id":"a_vidal","name":"A. Vidal","color":"hsl(342, 65%, 55%)","glow":"hsl(342, 90%, 65%)","tier":"TOP130","role":"MF","stats":{"speed":6.7,"power":1.8,"size":37},"abilities":["dribbler"]},
+            {"id":"j_rodriguez","name":"J. Rodríguez","color":"hsl(119, 65%, 55%)","glow":"hsl(119, 90%, 65%)","tier":"TOP130","role":"MF","stats":{"speed":7.2,"power":2.0,"size":33},"abilities":["dribbler"]},
+            {"id":"cuadrado","name":"Cuadrado","color":"hsl(256, 65%, 55%)","glow":"hsl(256, 90%, 65%)","tier":"TOP130","role":"MF","stats":{"speed":7.1,"power":1.7,"size":31},"abilities":["dribbler"]},
+            {"id":"yaya_toure","name":"Yaya Touré","color":"hsl(33, 65%, 55%)","glow":"hsl(33, 90%, 65%)","tier":"TOP130","role":"MF","stats":{"speed":7.2,"power":2.0,"size":32},"abilities":["dribbler"]},
+            {"id":"park_ji_sung","name":"Park Ji-sung","color":"hsl(170, 65%, 55%)","glow":"hsl(170, 90%, 65%)","tier":"TOP130","role":"MF","stats":{"speed":6.6,"power":2.0,"size":36},"abilities":["dribbler"]},
+            // ========== QOLGAN 19 TA (qobiliyatsiz, oddiy futbolchilar) ==========
+            {"id":"maguire","name":"H. Maguire","color":"#ff0000","glow":"#000","tier":"BASE","role":"DF","stats":{"speed":5.5,"power":1.8,"size":40},"abilities":[]},
+            {"id":"kepa","name":"Kepa","color":"#0000ff","glow":"#fff","tier":"BASE","role":"GK","stats":{"speed":6.0,"power":1.5,"size":35},"abilities":[]},
+            {"id":"p_jones","name":"P. Jones","color":"hsl(221, 65%, 55%)","glow":"hsl(221, 90%, 65%)","tier":"BASE","role":"DF","stats":{"speed":5.6,"power":1.8,"size":42},"abilities":[]},
+            {"id":"fred","name":"Fred","color":"hsl(358, 65%, 55%)","glow":"hsl(358, 90%, 65%)","tier":"BASE","role":"MF","stats":{"speed":5.8,"power":1.8,"size":35},"abilities":[]},
+            {"id":"n_matic","name":"N. Matić","color":"hsl(135, 65%, 55%)","glow":"hsl(135, 90%, 65%)","tier":"BASE","role":"MF","stats":{"speed":6.0,"power":1.3,"size":36},"abilities":[]},
+            {"id":"e_bailly","name":"E. Bailly","color":"hsl(272, 65%, 55%)","glow":"hsl(272, 90%, 65%)","tier":"BASE","role":"DF","stats":{"speed":5.6,"power":1.6,"size":45},"abilities":[]},
+            {"id":"wan_bissaka","name":"Wan-Bissaka","color":"hsl(49, 65%, 55%)","glow":"hsl(49, 90%, 65%)","tier":"BASE","role":"DF","stats":{"speed":5.4,"power":1.8,"size":42},"abilities":[]},
+            {"id":"j_lingard","name":"J. Lingard","color":"hsl(186, 65%, 55%)","glow":"hsl(186, 90%, 65%)","tier":"BASE","role":"MF","stats":{"speed":6.3,"power":1.6,"size":34},"abilities":[]},
+            {"id":"mctominay","name":"McTominay","color":"hsl(323, 65%, 55%)","glow":"hsl(323, 90%, 65%)","tier":"BASE","role":"MF","stats":{"speed":5.9,"power":1.6,"size":35},"abilities":[]},
+            {"id":"lindelof","name":"Lindelöf","color":"hsl(100, 65%, 55%)","glow":"hsl(100, 90%, 65%)","tier":"BASE","role":"DF","stats":{"speed":5.6,"power":1.5,"size":44},"abilities":[]},
+            {"id":"d_dalot","name":"D. Dalot","color":"hsl(237, 65%, 55%)","glow":"hsl(237, 90%, 65%)","tier":"BASE","role":"DF","stats":{"speed":5.6,"power":1.7,"size":39},"abilities":[]},
+            {"id":"d_henderson","name":"D. Henderson","color":"hsl(14, 65%, 55%)","glow":"hsl(14, 90%, 65%)","tier":"BASE","role":"GK","stats":{"speed":4.8,"power":1.5,"size":48},"abilities":[]},
+            {"id":"van_de_beek","name":"Van de Beek","color":"hsl(151, 65%, 55%)","glow":"hsl(151, 90%, 65%)","tier":"BASE","role":"MF","stats":{"speed":6.3,"power":1.8,"size":36},"abilities":[]},
+            {"id":"a_telles","name":"A. Telles","color":"hsl(288, 65%, 55%)","glow":"hsl(288, 90%, 65%)","tier":"BASE","role":"DF","stats":{"speed":5.3,"power":1.6,"size":44},"abilities":[]},
+            {"id":"tuanzebe","name":"Tuanzebe","color":"hsl(65, 65%, 55%)","glow":"hsl(65, 90%, 65%)","tier":"BASE","role":"DF","stats":{"speed":5.1,"power":1.9,"size":42},"abilities":[]},
+            {"id":"t_chong","name":"T. Chong","color":"hsl(202, 65%, 55%)","glow":"hsl(202, 90%, 65%)","tier":"BASE","role":"FW","stats":{"speed":6.8,"power":1.7,"size":30},"abilities":[]},
+            {"id":"d_james","name":"D. James","color":"hsl(339, 65%, 55%)","glow":"hsl(339, 90%, 65%)","tier":"BASE","role":"FW","stats":{"speed":6.1,"power":1.7,"size":32},"abilities":[]},
+            {"id":"pellistri","name":"Pellistri","color":"hsl(116, 65%, 55%)","glow":"hsl(116, 90%, 65%)","tier":"BASE","role":"FW","stats":{"speed":6.4,"power":1.8,"size":31},"abilities":[]},
+            {"id":"amad_diallo","name":"Amad Diallo","color":"hsl(253, 65%, 55%)","glow":"hsl(253, 90%, 65%)","tier":"BASE","role":"FW","stats":{"speed":6.8,"power":1.7,"size":31},"abilities":[]},
+        ];
+
+        const celebDb = [
+            {"id":"celeb_michael_jackson","name":"Michael Jackson","color":"hsl(12, 68%, 58%)","glow":"hsl(57, 90%, 65%)","tier":"CELEB","role":"MF","star":4,"price":3000,"stats":{"speed":8.6,"power":2.3,"size":36},"abilities":["dribbler","speed_boost","pushka","wall"]},
+            {"id":"celeb_mrbeast","name":"MrBeast","color":"hsl(22, 68%, 58%)","glow":"hsl(67, 90%, 65%)","tier":"CELEB","role":"FW","star":3,"price":1200,"stats":{"speed":9.4,"power":2.9,"size":35},"abilities":["pushka","finisher","speed_boost"]},
+            {"id":"celeb_muhammad_ali","name":"Muhammad Ali","color":"hsl(350, 68%, 58%)","glow":"hsl(35, 90%, 65%)","tier":"CELEB","role":"FW","star":3,"price":1200,"stats":{"speed":9.4,"power":2.9,"size":35},"abilities":["pushka","finisher","speed_boost"]},
+            {"id":"celeb_usain_bolt","name":"Usain Bolt","color":"hsl(32, 68%, 58%)","glow":"hsl(77, 90%, 65%)","tier":"CELEB","role":"FW","star":2,"price":500,"stats":{"speed":9.4,"power":2.9,"size":35},"abilities":["pushka","finisher"]},
+            {"id":"celeb_bruce_lee","name":"Bruce Lee","color":"hsl(342, 68%, 58%)","glow":"hsl(27, 90%, 65%)","tier":"CELEB","role":"MF","star":2,"price":500,"stats":{"speed":8.6,"power":2.3,"size":36},"abilities":["dribbler","speed_boost"]},
+            {"id":"celeb_dwayne_johnson","name":"Dwayne Johnson","color":"hsl(265, 68%, 58%)","glow":"hsl(310, 90%, 65%)","tier":"CELEB","role":"DF","star":2,"price":500,"stats":{"speed":7.2,"power":2.8,"size":42},"abilities":["wall","pushka"]},
+            {"id":"celeb_serena_williams","name":"Serena Williams","color":"hsl(62, 68%, 58%)","glow":"hsl(107, 90%, 65%)","tier":"CELEB","role":"MF","star":1,"price":150,"stats":{"speed":8.6,"power":2.3,"size":36},"abilities":["dribbler"]},
+            {"id":"celeb_arnold_s","name":"Arnold S.","color":"hsl(205, 68%, 58%)","glow":"hsl(250, 90%, 65%)","tier":"CELEB","role":"DF","star":1,"price":150,"stats":{"speed":7.2,"power":2.8,"size":42},"abilities":["wall"]},
+            {"id":"celeb_beyonce","name":"Beyoncé","color":"hsl(282, 68%, 58%)","glow":"hsl(327, 90%, 65%)","tier":"CELEB","role":"MF","star":1,"price":150,"stats":{"speed":8.6,"power":2.3,"size":36},"abilities":["dribbler"]},
+            {"id":"celeb_jackie_chan","name":"Jackie Chan","color":"hsl(92, 68%, 58%)","glow":"hsl(137, 90%, 65%)","tier":"CELEB","role":"FW","star":1,"price":150,"stats":{"speed":9.4,"power":2.9,"size":35},"abilities":["pushka"]},
+        ];
+
+        const celebDb2 = [
+            {"id":"celeb2_snoop_dogg","name":"Snoop Dogg","color":"hsl(150, 66%, 56%)","glow":"hsl(195, 88%, 64%)","tier":"CELEB","role":"MF","star":1,"price":120,"stats":{"speed":8.0,"power":2.1,"size":36},"abilities":["dribbler"]},
+            {"id":"celeb2_ed_sheeran","name":"Ed Sheeran","color":"hsl(15, 66%, 56%)","glow":"hsl(60, 88%, 64%)","tier":"CELEB","role":"FW","star":1,"price":120,"stats":{"speed":8.6,"power":2.5,"size":35},"abilities":["pushka"]},
+            {"id":"celeb2_shakira","name":"Shakira","color":"hsl(330, 66%, 56%)","glow":"hsl(15, 88%, 64%)","tier":"CELEB","role":"MF","star":1,"price":120,"stats":{"speed":8.0,"power":2.1,"size":36},"abilities":["dribbler"]},
+            {"id":"celeb2_zendaya","name":"Zendaya","color":"hsl(300, 66%, 56%)","glow":"hsl(345, 88%, 64%)","tier":"CELEB","role":"FW","star":1,"price":120,"stats":{"speed":8.6,"power":2.5,"size":35},"abilities":["pushka"]},
+            {"id":"celeb2_drake","name":"Drake","color":"hsl(200, 66%, 56%)","glow":"hsl(245, 88%, 64%)","tier":"CELEB","role":"DF","star":1,"price":120,"stats":{"speed":6.9,"power":2.5,"size":41},"abilities":["wall"]},
+            {"id":"celeb2_adele","name":"Adele","color":"hsl(240, 66%, 56%)","glow":"hsl(285, 88%, 64%)","tier":"CELEB","role":"GK","star":1,"price":120,"stats":{"speed":6.2,"power":1.9,"size":45},"abilities":["goalkeeper"]},
+            {"id":"celeb2_tom_cruise","name":"Tom Cruise","color":"hsl(190, 66%, 56%)","glow":"hsl(235, 88%, 64%)","tier":"CELEB","role":"FW","star":1,"price":120,"stats":{"speed":8.6,"power":2.5,"size":35},"abilities":["pushka"]},
+            {"id":"celeb2_rihanna","name":"Rihanna","color":"hsl(315, 66%, 56%)","glow":"hsl(0, 88%, 64%)","tier":"CELEB","role":"MF","star":1,"price":120,"stats":{"speed":8.0,"power":2.1,"size":36},"abilities":["dribbler"]},
+            {"id":"celeb2_will_smith","name":"Will Smith","color":"hsl(100, 66%, 56%)","glow":"hsl(145, 88%, 64%)","tier":"CELEB","role":"FW","star":2,"price":400,"stats":{"speed":8.8,"power":2.6,"size":35},"abilities":["pushka","finisher"]},
+            {"id":"celeb2_lady_gaga","name":"Lady Gaga","color":"hsl(285, 66%, 56%)","glow":"hsl(330, 88%, 64%)","tier":"CELEB","role":"MF","star":2,"price":400,"stats":{"speed":8.2,"power":2.2,"size":36},"abilities":["dribbler","speed_boost"]},
+            {"id":"celeb2_eminem","name":"Eminem","color":"hsl(220, 66%, 56%)","glow":"hsl(265, 88%, 64%)","tier":"CELEB","role":"MF","star":2,"price":400,"stats":{"speed":8.2,"power":2.2,"size":36},"abilities":["dribbler","speed_boost"]},
+            {"id":"celeb2_keanu_reeves","name":"Keanu Reeves","color":"hsl(175, 66%, 56%)","glow":"hsl(220, 88%, 64%)","tier":"CELEB","role":"DF","star":2,"price":400,"stats":{"speed":7.2,"power":2.6,"size":41},"abilities":["wall","pushka"]},
+            {"id":"celeb2_taylor_swift","name":"Taylor Swift","color":"hsl(340, 66%, 56%)","glow":"hsl(25, 88%, 64%)","tier":"CELEB","role":"FW","star":2,"price":400,"stats":{"speed":8.8,"power":2.6,"size":35},"abilities":["pushka","finisher"]},
+            {"id":"celeb2_kobe_bryant","name":"Kobe Bryant","color":"hsl(270, 66%, 56%)","glow":"hsl(315, 88%, 64%)","tier":"CELEB","role":"FW","star":2,"price":400,"stats":{"speed":8.8,"power":2.6,"size":35},"abilities":["pushka","finisher"]},
+            {"id":"celeb2_michael_jordan","name":"Michael Jordan","color":"hsl(5, 66%, 56%)","glow":"hsl(50, 88%, 64%)","tier":"CELEB","role":"FW","star":3,"price":900,"stats":{"speed":9.1,"power":2.7,"size":35},"abilities":["pushka","finisher","speed_boost"]},
+            {"id":"celeb2_conor_mcgregor","name":"Conor McGregor","color":"hsl(130, 66%, 56%)","glow":"hsl(175, 88%, 64%)","tier":"CELEB","role":"DF","star":3,"price":900,"stats":{"speed":7.4,"power":2.7,"size":41},"abilities":["wall","pushka","speed_boost"]},
+            {"id":"celeb2_tyson_fury","name":"Tyson Fury","color":"hsl(35, 66%, 56%)","glow":"hsl(80, 88%, 64%)","tier":"CELEB","role":"GK","star":3,"price":900,"stats":{"speed":6.7,"power":2.1,"size":45},"abilities":["goalkeeper","wall","speed_boost"]},
+            {"id":"celeb2_lebron_james","name":"LeBron James","color":"hsl(260, 66%, 56%)","glow":"hsl(305, 88%, 64%)","tier":"CELEB","role":"FW","star":3,"price":900,"stats":{"speed":9.1,"power":2.7,"size":35},"abilities":["pushka","finisher","speed_boost"]},
+            {"id":"celeb2_mike_tyson","name":"Mike Tyson","color":"hsl(0, 66%, 56%)","glow":"hsl(45, 88%, 64%)","tier":"CELEB","role":"DF","star":4,"price":2200,"stats":{"speed":7.7,"power":2.8,"size":41},"abilities":["wall","pushka","speed_boost","dribbler"]},
+            {"id":"celeb2_elon_musk","name":"Elon Musk","color":"hsl(185, 66%, 56%)","glow":"hsl(230, 88%, 64%)","tier":"CELEB","role":"MF","star":4,"price":2200,"stats":{"speed":8.8,"power":2.4,"size":36},"abilities":["dribbler","speed_boost","pushka","wall"]},
+        ];
+
+        // Legends mavsumining yangi 20 ta futbolchisi asosiy celebDb ga qo'shiladi —
+        // shu tariqa pack, do'kon, katalog va reyting tizimlari ularni avtomatik ko'radi.
+        celebDb.push(...celebDb2);
+
+
+        const primeDb = [
+            {"id":"prime_c_ronaldo","name":"C. Ronaldo PRIME","color":"hsl(355, 72%, 55%)","glow":"#ffd700","tier":"PRIME","role":"FW","price":15000,"stats":{"speed":11.0,"power":3.9,"size":37},"abilities":["pushka","finisher","speed_boost","dribbler","wall"],"special":"super_pushka"},
+            {"id":"prime_z_zidane","name":"Z. Zidane PRIME","color":"hsl(210, 72%, 55%)","glow":"#ffd700","tier":"PRIME","role":"MF","price":9000,"stats":{"speed":9.6,"power":3.2,"size":37},"abilities":["dribbler","finisher","pushka","wall"]},
+            {"id":"prime_kaka","name":"Kaká PRIME","color":"hsl(195, 72%, 55%)","glow":"#ffd700","tier":"PRIME","role":"MF","price":8000,"stats":{"speed":10.2,"power":3.0,"size":35},"abilities":["speed_boost","dribbler","finisher"]},
+            {"id":"prime_r_carlos","name":"R. Carlos PRIME","color":"hsl(45, 72%, 55%)","glow":"#ffd700","tier":"PRIME","role":"DF","price":9500,"stats":{"speed":9.4,"power":3.7,"size":39},"abilities":["pushka","wall","speed_boost"],"special":"curve"},
+            {"id":"prime_l_yashin","name":"L. Yashin PRIME","color":"hsl(0, 72%, 55%)","glow":"#ffd700","tier":"PRIME","role":"GK","price":9500,"stats":{"speed":9.0,"power":3.3,"size":54},"abilities":["goalkeeper","wall","pushka","finisher"]},
+            {"id":"prime_puskas","name":"Puskás PRIME","color":"hsl(30, 72%, 55%)","glow":"#ffd700","tier":"PRIME","role":"FW","price":8500,"stats":{"speed":9.3,"power":3.8,"size":37},"abilities":["pushka","finisher","wall"]},
+            {"id":"prime_g_bale","name":"G. Bale PRIME","color":"hsl(120, 72%, 55%)","glow":"#ffd700","tier":"PRIME","role":"FW","price":8000,"stats":{"speed":10.6,"power":3.4,"size":37},"abilities":["speed_boost","pushka","finisher"]},
+            {"id":"prime_j_okocha","name":"J. Okocha PRIME","color":"hsl(60, 72%, 55%)","glow":"#ffd700","tier":"PRIME","role":"MF","price":7500,"stats":{"speed":9.8,"power":2.9,"size":34},"abilities":["dribbler","speed_boost","finisher"]},
+            {"id":"prime_neymar","name":"Neymar PRIME","color":"hsl(280, 72%, 55%)","glow":"#ffd700","tier":"PRIME","role":"FW","price":8000,"stats":{"speed":10.0,"power":2.9,"size":34},"abilities":["dribbler","speed_boost","finisher"]},
+            {"id":"prime_ronaldinho","name":"Ronaldinho PRIME","color":"hsl(20, 72%, 55%)","glow":"#ffd700","tier":"PRIME","role":"MF","price":8500,"stats":{"speed":9.7,"power":3.1,"size":35},"abilities":["dribbler","pushka","finisher"]},
+        ];
+
+        const primeDb2 = [
+            {"id":"prime2_maradona","name":"Maradona PRIME","color":"hsl(200, 72%, 55%)","glow":"#ffd700","tier":"PRIME","role":"FW","stats":{"speed":10.4,"power":3.3,"size":35},"abilities":["pushka","finisher","speed_boost","dribbler","wall"]},
+            {"id":"prime2_pele","name":"Pelé PRIME","color":"hsl(120, 72%, 55%)","glow":"#ffd700","tier":"PRIME","role":"FW","stats":{"speed":10.3,"power":3.5,"size":36},"abilities":["pushka","finisher","speed_boost","dribbler","wall"]},
+            {"id":"prime2_messi","name":"Messi PRIME","color":"hsl(195, 72%, 55%)","glow":"#ffd700","tier":"PRIME","role":"FW","stats":{"speed":10.5,"power":3.0,"size":33},"abilities":["pushka","finisher","speed_boost","dribbler","wall"]},
+            {"id":"prime2_r_nazario","name":"R. Nazário PRIME","color":"hsl(355, 72%, 55%)","glow":"#ffd700","tier":"PRIME","role":"FW","stats":{"speed":10.7,"power":3.4,"size":36},"abilities":["pushka","finisher","speed_boost","dribbler","wall"]},
+            {"id":"prime2_cruyff","name":"Cruyff PRIME","color":"hsl(30, 72%, 55%)","glow":"#ffd700","tier":"PRIME","role":"FW","stats":{"speed":10.0,"power":3.1,"size":36},"abilities":["pushka","finisher","speed_boost","dribbler"]},
+            {"id":"prime2_beckenbauer","name":"Beckenbauer PRIME","color":"hsl(215, 72%, 55%)","glow":"#ffd700","tier":"PRIME","role":"DF","stats":{"speed":8.8,"power":3.5,"size":41},"abilities":["wall","pushka","speed_boost","dribbler"]},
+            {"id":"prime2_baggio","name":"Baggio PRIME","color":"hsl(190, 72%, 55%)","glow":"#ffd700","tier":"PRIME","role":"MF","stats":{"speed":9.7,"power":3.2,"size":35},"abilities":["dribbler","speed_boost","pushka","finisher"]},
+            {"id":"prime2_totti","name":"Totti PRIME","color":"hsl(45, 72%, 55%)","glow":"#ffd700","tier":"PRIME","role":"MF","stats":{"speed":9.4,"power":3.4,"size":36},"abilities":["dribbler","speed_boost","pushka","finisher"]},
+            {"id":"prime2_del_piero","name":"Del Piero PRIME","color":"hsl(220, 72%, 55%)","glow":"#ffd700","tier":"PRIME","role":"FW","stats":{"speed":9.6,"power":3.3,"size":35},"abilities":["pushka","finisher","speed_boost","dribbler"]},
+            {"id":"prime2_henry","name":"Henry PRIME","color":"hsl(10, 72%, 55%)","glow":"#ffd700","tier":"PRIME","role":"FW","stats":{"speed":10.4,"power":3.2,"size":37},"abilities":["pushka","finisher","speed_boost","dribbler"]},
+            {"id":"prime2_beckham","name":"Beckham PRIME","color":"hsl(340, 72%, 55%)","glow":"#ffd700","tier":"PRIME","role":"MF","stats":{"speed":9.2,"power":3.6,"size":36},"abilities":["dribbler","speed_boost","pushka","finisher"],"special":"curve"},
+            {"id":"prime2_pirlo","name":"Pirlo PRIME","color":"hsl(205, 72%, 55%)","glow":"#ffd700","tier":"PRIME","role":"MF","stats":{"speed":9.0,"power":3.5,"size":36},"abilities":["dribbler","speed_boost","pushka","finisher"],"special":"curve"},
+            {"id":"prime2_gerrard","name":"Gerrard PRIME","color":"hsl(0, 72%, 55%)","glow":"#ffd700","tier":"PRIME","role":"MF","stats":{"speed":9.5,"power":3.6,"size":37},"abilities":["dribbler","speed_boost","pushka","finisher"]},
+            {"id":"prime2_drogba","name":"Drogba PRIME","color":"hsl(15, 72%, 55%)","glow":"#ffd700","tier":"PRIME","role":"FW","stats":{"speed":9.4,"power":3.7,"size":40},"abilities":["pushka","finisher","speed_boost","dribbler"]},
+            {"id":"prime2_maldini","name":"Maldini PRIME","color":"hsl(210, 72%, 55%)","glow":"#ffd700","tier":"PRIME","role":"DF","stats":{"speed":9.0,"power":3.3,"size":41},"abilities":["wall","pushka","speed_boost"]},
+            {"id":"prime2_cannavaro","name":"Cannavaro PRIME","color":"hsl(225, 72%, 55%)","glow":"#ffd700","tier":"PRIME","role":"DF","stats":{"speed":8.9,"power":3.2,"size":40},"abilities":["wall","pushka","speed_boost"]},
+            {"id":"prime2_buffon","name":"Buffon PRIME","color":"hsl(180, 72%, 55%)","glow":"#ffd700","tier":"PRIME","role":"GK","stats":{"speed":8.6,"power":3.1,"size":52},"abilities":["goalkeeper","wall","speed_boost"]},
+            {"id":"prime2_casillas","name":"Casillas PRIME","color":"hsl(165, 72%, 55%)","glow":"#ffd700","tier":"PRIME","role":"GK","stats":{"speed":8.7,"power":3.0,"size":51},"abilities":["goalkeeper","wall","speed_boost"]},
+            {"id":"prime2_xavi","name":"Xavi PRIME","color":"hsl(350, 72%, 55%)","glow":"#ffd700","tier":"PRIME","role":"MF","stats":{"speed":9.3,"power":2.9,"size":35},"abilities":["dribbler","speed_boost","pushka"]},
+            {"id":"prime2_iniesta","name":"Iniesta PRIME","color":"hsl(345, 72%, 55%)","glow":"#ffd700","tier":"PRIME","role":"MF","stats":{"speed":9.4,"power":2.9,"size":34},"abilities":["dribbler","speed_boost","pushka"]},
+        ];
+
+        // Prime mavsumining yangi 20 ta futbolchisi asosiy primeDb ga qo'shiladi —
+        // do'kon, pack, katalog va reyting tizimlari ularni avtomatik ko'radi.
+        primeDb.push(...primeDb2);
+
+
+        let gameMode = 1; // 1 = vs Bot, 2 = vs P2
+        let p1Data = null, p2Data = null;
+        let selectingPlayer = 1; // 1 or 2
+        let currentTierFilter = 'ALL';
+
+        // O'zbekcha nomlar va ikonkalar
+        const roleNames = { GK: 'Darvozabon', DF: 'Himoyachi', MF: 'Yarim himoyachi', FW: 'Hujumchi', LEGEND: 'Afsona' };
+        const roleIcons = { GK: '🥅', DF: '🧱', MF: '🧭', FW: '🏹', LEGEND: '🦅' };
+        const abilityInfo = {
+            pushka:      { icon: '💥', label: 'Kuchli zarba' },
+            speed_boost: { icon: '⚡', label: 'Tezlik' },
+            goalkeeper:  { icon: '🧤', label: 'Darvozabon' },
+            dribbler:    { icon: '🌀', label: 'Dribbling' },
+            finisher:    { icon: '🎯', label: 'Golchi' },
+            wall:        { icon: '🛡️', label: 'Devor' },
+            takedown:    { icon: '🤼', label: 'Yiqitish' },
+            magnet:      { icon: '🧲', label: 'Magnit' },
+            unstoppable: { icon: '🗿', label: 'Yengilmas' },
+            overdrive:   { icon: '🔥', label: 'Cheksiz kuch' }
+        };
+
+        // Khabibni faqat P1 tanlay oladi — bot/raqib sifatida hech qachon chiqmaydi
+        function randomNonKhabib() {
+            let pool = db.filter(p => p.id !== 'khabib');
+            return pool[Math.floor(Math.random() * pool.length)];
+        }
+
+        // Tanlash Ekrani Mantiqi
+        function openSelection(mode) {
+            gameMode = mode;
+            document.getElementById('menu').style.display = 'none';
+            let sel = document.getElementById('selection-screen');
+            sel.style.display = 'flex'; playEnterAnim(sel);
+            selectingPlayer = 1;
+            updateRosterUI();
+        }
+
+        let isPaused = false;
+        let matchEpoch = 0; // har safar bosh menyuga qaytilganda oshadi — kechikkan setTimeout'lar shu orqali bekor qilinadi
+
+        function togglePause() {
+            if (isGameOver) return;
+            isPaused = !isPaused;
+            document.getElementById('pauseOverlay').style.display = isPaused ? 'flex' : 'none';
+        }
+        function resumeGame() {
+            isPaused = false;
+            document.getElementById('pauseOverlay').style.display = 'none';
+        }
+        function quitToMenuFromPause() {
+            isPaused = false;
+            document.getElementById('pauseOverlay').style.display = 'none';
+            backToMenu();
+        }
+
+        function backToMenu() {
+            matchEpoch++;
+            hideAllScreens();
+            let m = document.getElementById('menu');
+            m.style.display = 'flex'; playEnterAnim(m);
+            p1Data = null; p2Data = null; selectingPlayer = 1;
+            isGameOver = true;
+            isPaused = false;
+            trnActive = false;
+            activeChallenge = null;
+            if (typeof updateTouchUI === 'function') updateTouchUI();
+            if (typeof checkOrientation === 'function') checkOrientation();
+        }
+
+        // ===================== TURNIR LOGIKASI =====================
+        const TOTAL_ROUNDS = 10;
+        let trnActive = false;
+        let trnMode = '1v1';          // '1v1' yoki '2v2'
+        let trnRound = 0;
+        let trnRounds = [];           // [{p1name, p2name, p1g, p2g, winner}]
+        let trnP1Data = null;         // 1v1 da bitta o'yinchi; 2v2 da [p1a, p1b]
+        let trnP1Score = 0;           // jami gol (turnir bo'yi)
+        let trnP2Score = 0;
+        let trnWinStreak = 0;         // "Qaytish" challenge uchun
+
+        let trnDifficulty = 'easy'; // 'easy' | 'medium' | 'hard'
+        const DIFFICULTY_POOLS = {
+            easy:   ['BASE','TOP130'],
+            medium: ['TOP130','TOP80','TOP40'],
+            hard:   ['TOP40','TOP10']
+        };
+        function setTrnDifficulty(diff) {
+            trnDifficulty = diff;
+            document.querySelectorAll('.trn-diff-btn').forEach(b => b.classList.toggle('active', b.dataset.diff === diff));
+        }
+        function randomBotForDifficulty(diff) {
+            let tiers = DIFFICULTY_POOLS[diff] || DIFFICULTY_POOLS.easy;
+            let pool = db.filter(p => p.id !== 'khabib' && tiers.includes(p.tier));
+            if (pool.length === 0) pool = db.filter(p => p.id !== 'khabib');
+            return pool[Math.floor(Math.random() * pool.length)];
+        }
+
+        function openTournament() {
+            hideAllScreens();
+            let el = document.getElementById('tournament-screen');
+            el.style.display = 'flex'; playEnterAnim(el);
+            trnMode = '1v1';
+            trnP1Data = null;
+            trnDifficulty = 'easy';
+            document.getElementById('trn-btn-1v1').classList.add('active');
+            document.getElementById('trn-btn-2v2').classList.remove('active');
+            document.querySelectorAll('.trn-diff-btn').forEach(b => b.classList.toggle('active', b.dataset.diff === 'easy'));
+            let best = profile && profile.trnBestWins;
+            document.getElementById('trnBestRecord').textContent = best ? `🏆 Eng yaxshi natijangiz: ${best}/10 g'alaba` : '';
+            renderTrnSlots();
+        }
+
+
+        function hideAllScreens() {
+            ['menu','selection-screen','tournament-screen','tournament-results',
+             'shop-screen','pack-screen','inventory-screen','profile-screen','events-screen','bestplayers-screen'].forEach(id => {
+                document.getElementById(id).style.display = 'none';
+            });
+            document.getElementById('ui').style.display = 'none';
+            document.getElementById('roundBanner').style.display = 'none';
+            document.getElementById('pauseBtn').style.display = 'none';
+            document.getElementById('pauseOverlay').style.display = 'none';
+            let mi = document.getElementById('matchIntro'); if (mi) mi.classList.remove('show');
+        }
+
+        function closePanel(id) {
+            document.getElementById(id).style.display = 'none';
+            document.getElementById('menu').style.display = 'flex';
+        }
+
+        function setTrnMode(mode) {
+            trnMode = mode;
+            trnP1Data = null;
+            document.getElementById('trn-btn-1v1').classList.toggle('active', mode === '1v1');
+            document.getElementById('trn-btn-2v2').classList.toggle('active', mode === '2v2');
+            renderTrnSlots();
+        }
+
+        function renderTrnSlots() {
+            const cont = document.getElementById('trn-slots');
+            cont.innerHTML = '';
+            if(trnMode === '1v1') {
+                cont.appendChild(makeTrnSlot('P1', trnP1Data, false, 0));
+                cont.appendChild(makeTrnSlot('🤖 Bot', null, true, 0));
+            } else {
+                cont.appendChild(makeTrnSlot('P1-A', Array.isArray(trnP1Data) ? trnP1Data[0] : null, false, 0));
+                cont.appendChild(makeTrnSlot('P1-B', Array.isArray(trnP1Data) ? trnP1Data[1] : null, false, 1));
+                cont.appendChild(makeTrnSlot('🤖 Bot-A', null, true, 0));
+                cont.appendChild(makeTrnSlot('🤖 Bot-B', null, true, 1));
+            }
+        }
+
+        function makeTrnSlot(label, playerData, isBot, idx) {
+            const div = document.createElement('div');
+            div.className = 'trn-slot' + (isBot ? ' bot-slot' : '') + (playerData || isBot ? ' filled' : '');
+            div.innerHTML = `
+                <div class="trn-slot-label">${label}</div>
+                <div class="trn-slot-name">${isBot ? '🎲 Tasodifiy' : (playerData ? playerData.name : '— Tanlang —')}</div>
+                <div class="trn-slot-tier">${isBot ? 'Har raundda yangi bot' : (playerData ? playerData.tier : '')}</div>
+            `;
+            if(!isBot) {
+                div.onclick = () => openTrnPlayerSelect(idx);
+            }
+            return div;
+        }
+
+        let trnSelectIdx = 0; // 0 = P1-A, 1 = P1-B
+        function openTrnPlayerSelect(idx) {
+            trnSelectIdx = idx;
+            hideAllScreens();
+            document.getElementById('selection-screen').style.display = 'flex';
+            selectingPlayer = 'trn'; // maxsus holat
+            document.getElementById('select-title').innerText = trnMode === '2v2'
+                ? (idx === 0 ? "P1-A: O'yinchingizni tanlang" : "P1-B: O'yinchingizni tanlang")
+                : "O'yinchingizni tanlang";
+            document.getElementById('select-title').style.color = '#00ffcc';
+            let rb = document.getElementById('random-bot-btn');
+            if(rb) rb.style.display = 'none';
+            document.getElementById('searchInput').value = '';
+            currentTierFilter = 'ALL';
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.tier === 'ALL'));
+            renderRosterList();
+        }
+
+        function startTournament() {
+            // Validatsiya
+            if(trnMode === '1v1' && !trnP1Data) { alert("O'yinchini tanlang!"); return; }
+            if(trnMode === '2v2' && (!Array.isArray(trnP1Data) || !trnP1Data[0] || !trnP1Data[1])) {
+                alert("Ikkala o'yinchini tanlang (P1-A va P1-B)!"); return;
+            }
+            hideAllScreens();
+            trnActive = true;
+            trnRound = 0;
+            trnRounds = [];
+            trnP1Score = 0; trnP2Score = 0;
+            gameMode = 1; // bot rejimi
+            nextTrnRound();
+        }
+
+        function nextTrnRound() {
+            trnRound++;
+            if(trnRound > TOTAL_ROUNDS) { showTrnResults(); return; }
+
+            const rb = document.getElementById('roundBanner');
+            rb.textContent = `🏆 Raund ${trnRound} / ${TOTAL_ROUNDS}  |  Umumiy: ${trnP1Score} — ${trnP2Score}`;
+            rb.style.display = 'block';
+            document.getElementById('ui').style.display = 'flex';
+            trnActive = true;
+
+            if(trnMode === '1v1') {
+                p1Data = trnP1Data;
+                p2Data = randomBotForDifficulty(trnDifficulty);
+                startGame_TournamentRound();
+            } else {
+                // 2v2: 4 o'yinchi bitta maydonda, bitta raundda, gollari bevosita hisoblanadi
+                startGame2v2(trnP1Data[0], trnP1Data[1], randomBotForDifficulty(trnDifficulty), randomBotForDifficulty(trnDifficulty));
+            }
+        }
+
+        // startGame()/startGame2v2() UI o'zgarishlarini o'zi bajaradi, bu yerda faqat 1v1 uchun
+        // selection-screen ni yashirish keraksiz (turnir allaqachon yashirgan) — shu uchun alohida:
+        function startGame_TournamentRound() {
+            isGameOver = false; score.p1 = 0; score.p2 = 0;
+            is2v2 = false; p1b = null; p2b = null;
+            p1 = new Player(0, 0, p1Data);
+            p2 = new Player(0, 0, p2Data);
+            document.getElementById('p1-name').innerText = p1.data.name;
+            document.getElementById('p2-name').innerText = p2.data.name;
+            document.getElementById('s1').innerText = '0';
+            document.getElementById('s2').innerText = '0';
+            document.getElementById('pauseBtn').style.display = 'flex';
+            isPaused = false;
+            resetPositions();
+            updateTouchUI(); checkOrientation();
+            showMatchIntro(p1.data.name, p1.data.glow, p2.data.name, p2.data.glow);
+            if(!loopRunning) { loopRunning = true; loop(); }
+        }
+
+        function finishTrnRound(p1g, p2g, p1name, p2name, opponentTier) {
+            trnP1Score += p1g;
+            trnP2Score += p2g;
+            let winner = p1g > p2g ? '✅ Siz' : p1g < p2g ? '❌ Bot' : '🤝 Draw';
+            trnRounds.push({ round: trnRound, p1name, p2name, p1g, p2g, winner });
+
+            // Coin/gem mukofoti — raqib qanchalik kuchli bo'lsa, shunchalik katta (jonli tadbir bilan ham)
+            awardTournamentRound(p1g, p2g, opponentTier);
+
+            if (winner === '✅ Siz') {
+                trnWinStreak++;
+                // "Qaytish" challenge: 3 ketma-ket raund g'alabasi
+                if (trnWinStreak >= 3) {
+                    let ch = CHALLENGES.find(c => c.id === 'comeback');
+                    if (ch) completeChallenge(ch);
+                }
+                // "Legenda ovchisi" challenge: TOP10 darajali botni yutish
+                if (opponentTier === 'TOP10') {
+                    let ch2 = CHALLENGES.find(c => c.id === 'legend_slayer');
+                    if (ch2) completeChallenge(ch2);
+                }
+                // "Katta g'alaba" challenge: kamida 3 farq bilan yutish
+                if (p1g - p2g >= 3) {
+                    let ch3 = CHALLENGES.find(c => c.id === 'big_win');
+                    if (ch3) completeChallenge(ch3);
+                }
+            } else { trnWinStreak = 0; }
+
+            const rb = document.getElementById('roundBanner');
+            rb.textContent = `🏆 Raund ${trnRound} / ${TOTAL_ROUNDS}  |  Umumiy: ${trnP1Score} — ${trnP2Score}`;
+
+            let epoch = matchEpoch;
+            if(trnRound >= TOTAL_ROUNDS) {
+                setTimeout(() => { if(epoch!==matchEpoch) return; hideAllScreens(); showTrnResults(); }, 2200);
+            } else {
+                setTimeout(() => { if(epoch!==matchEpoch) return; nextTrnRound(); }, 2200);
+            }
+        }
+
+        function showTrnResults() {
+            hideAllScreens();
+            document.getElementById('tournament-results').style.display = 'flex';
+            const wins = trnRounds.filter(r => r.winner === '✅ Siz').length;
+            const losses = trnRounds.filter(r => r.winner === '❌ Bot').length;
+            const draws = trnRounds.filter(r => r.winner === '🤝 Draw').length;
+
+            let banner, color;
+            if(trnP1Score > trnP2Score) { banner = '🥇 SIZ G\'OLIB BO\'LDINGIZ! 🎉'; color = '#ffd700'; }
+            else if(trnP1Score < trnP2Score) { banner = '💔 Bot g\'alaba qozondi!'; color = '#ff4444'; }
+            else { banner = '🤝 Durang! Teng o\'yin!'; color = '#ffaa00'; }
+
+            awardTournamentFinish(wins, losses).then(gems => {
+                document.getElementById('trn-result-title').innerHTML =
+                    `🏆 Turnir yakunlandi! &nbsp;<span style="font-size:18px;color:#aaa">${wins}G / ${draws}D / ${losses}M</span>` +
+                    `<br><span style="font-size:14px;color:#e070ff">💎 +${gems} gem olindi!</span>`;
+            });
+            const fb = document.getElementById('trn-final-banner');
+            fb.textContent = `${banner}  ${trnP1Score} — ${trnP2Score}`;
+            fb.style.color = color;
+
+            const tbody = document.getElementById('trn-rounds-body');
+            tbody.innerHTML = trnRounds.map(r => {
+                let cls = r.winner === '✅ Siz' ? 'win-row' : r.winner === '❌ Bot' ? 'loss-row' : 'draw-row';
+                return `<tr class="${cls}">
+                    <td>${r.round}</td>
+                    <td style="max-width:180px;font-size:12px">${r.p1name}</td>
+                    <td style="max-width:180px;font-size:12px">${r.p2name}</td>
+                    <td>${r.p1g} — ${r.p2g}</td>
+                    <td>${r.winner}</td>
+                </tr>`;
+            }).join('');
+            trnActive = false;
+            trnWinStreak = 0;
+        }
+        // ===================== TURNIR LOGIKASI TUGADI =====================
+
+        function setTierFilter(tier) {
+            currentTierFilter = tier;
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.tier === tier));
+            renderRosterList();
+        }
+
+        function updateRosterUI() {
+            let title, color;
+            if(selectingPlayer === 1) { title = "1-O'YINCHI: Futbolchini tanlang"; color = "#00ffcc"; }
+            else if(selectingPlayer === 'bot') { title = "🤖 BOT: Kim bo'lsin?"; color = "#ffaa00"; }
+            else { title = "2-O'YINCHI: Futbolchini tanlang"; color = "#ff3366"; }
+            document.getElementById('select-title').innerText = title;
+            document.getElementById('select-title').style.color = color;
+
+            // Bot ekranida "Tasodifiy bot" tugmasi ko'rsatamiz
+            let randBtn = document.getElementById('random-bot-btn');
+            if(selectingPlayer === 'bot') {
+                if(!randBtn) {
+                    randBtn = document.createElement('button');
+                    randBtn.id = 'random-bot-btn';
+                    randBtn.className = 'btn';
+                    randBtn.style.cssText = 'font-size:16px;padding:10px 28px;margin-bottom:10px;background:rgba(255,170,0,0.15);border-color:#ffaa00;color:#ffaa00;';
+                    randBtn.innerHTML = '🎲 Tasodifiy bot';
+                    randBtn.onclick = () => { p2Data = randomNonKhabib(); startGame(); };
+                    document.getElementById('select-title').insertAdjacentElement('afterend', randBtn);
+                }
+                randBtn.style.display = 'inline-block';
+            } else if(randBtn) { randBtn.style.display = 'none'; }
+
+            document.getElementById('searchInput').value = '';
+            currentTierFilter = 'ALL';
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.tier === 'ALL'));
+            renderRosterList();
+        }
+
+        function renderRosterList() {
+            let searchVal = document.getElementById('searchInput').value.trim().toLowerCase();
+            let isHumanContext = (selectingPlayer === 1) || (selectingPlayer === 2) || (selectingPlayer === 'trn');
+            // Khabib faqat P1 (yoki turnirda P1-A) ekranida ko'rinadi — P2/bot/P1-B unga chiqolmaydi
+            let allowKhabib = (selectingPlayer === 1) || (selectingPlayer === 'trn' && trnSelectIdx === 0);
+
+            let basePool;
+            if (selectingPlayer === 'bot') {
+                basePool = db.filter(pl => pl.id !== 'khabib'); // bot egalikdan mustasno, faqat Khabibsiz
+            } else if (isHumanContext && profile) {
+                if (isFreeWindowActive()) {
+                    // Ochilish soati: butun asosiy roster + barcha Celebrity tekin tanlanadi.
+                    // Prime futbolchilar tekin emas — faqat sotib olinganlari ko'rinadi.
+                    let freeBase = allowKhabib ? db : db.filter(pl => pl.id !== 'khabib');
+                    let ownedPrimes = primeDb.filter(pl => ownsPlayer(pl.id));
+                    basePool = ownedPrimes.concat(freeBase).concat(celebDb);
+                } else {
+                    // Soat tugagach — faqat egalik qilgan futbolchilaringiz
+                    basePool = fullCatalog().filter(pl => ownsPlayer(pl.id));
+                }
+            } else {
+                basePool = db;
+            }
+
+            let filtered = basePool.filter(pl => {
+                let matchesSearch = !searchVal || pl.name.toLowerCase().includes(searchVal);
+                let matchesTier = currentTierFilter === 'ALL' || pl.tier === currentTierFilter;
+                return matchesSearch && matchesTier;
+            }).sort(strengthComparator);
+
+            let container = document.getElementById('roster-container');
+            container.innerHTML = '';
+            document.getElementById('rosterCount').innerText = `${filtered.length} / ${basePool.length} futbolchi ko'rsatilmoqda`;
+
+            if(filtered.length === 0) {
+                let msg = (isHumanContext && !isFreeWindowActive())
+                    ? "Inventaringizda mos futbolchi yo'q 😕<br>🛒 Do'kondan yoki 🎁 Packdan futbolchi oling."
+                    : "Hech narsa topilmadi 😕<br>Boshqa nom yoki filtr sinab ko'ring.";
+                container.innerHTML = `<div class="no-results">${msg}</div>`;
+                return;
+            }
+
+            filtered.forEach(player => {
+                let card = document.createElement('div');
+                card.className = 'player-card' + (player.tier === 'MAX' ? ' legend-card' : player.tier === 'PRIME' ? ' prime-card' : '');
+                card.style.borderColor = player.glow;
+
+                let badgeText, tierClass;
+                if(player.tier === 'MAX') {
+                    badgeText = '👑 THE BEST'; tierClass = 'tier-badge tier-max';
+                } else if(player.tier === 'PRIME') {
+                    badgeText = '🔥 PRIME'; tierClass = 'tier-badge tier-prime';
+                } else if(player.tier === 'CELEB') {
+                    badgeText = '🌟'.repeat(player.star); tierClass = 'tier-badge';
+                } else {
+                    const starMap = {5:'⭐⭐⭐⭐⭐', 3:'⭐⭐⭐', 2:'⭐⭐', 1:'⭐', 0:'ODDIY'};
+                    badgeText = starMap[player.abilities.length] ?? '';
+                    tierClass = 'tier-badge';
+                }
+
+                let abilitiesHtml = player.abilities.length > 0
+                    ? player.abilities.map(a => `<span class="ability-chip">${abilityInfo[a].icon} ${abilityInfo[a].label}</span>`).join('')
+                    : '<span class="no-ability">Qobiliyat yo\'q</span>';
+
+                let roleLine = player.role && roleIcons[player.role] ? `<div class="player-role">${roleIcons[player.role]} ${roleNames[player.role]}</div>` : '';
+
+                card.innerHTML = `
+                    <div class="${tierClass}">${badgeText}</div>
+                    <div class="player-name" style="color:${player.color}">${player.name}</div>
+                    ${roleLine}
+                    <div class="player-stats">⚡${player.stats.speed} 💪${player.stats.power}</div>
+                    <div class="player-abilities">${abilitiesHtml}</div>
+                `;
+
+                card.onclick = async () => {
+                    if(selectingPlayer === 'bot') { p2Data = player; startGame(); return; }
+                    // Prime futbolchilar hech qachon tekin berilmaydi — ular faqat sotib olinadi
+                    // (ro'yxatda faqat allaqachon sotib olinganlari ko'rinadi)
+                    if (isHumanContext && isFreeWindowActive() && player.tier !== 'PRIME' && !ownsPlayer(player.id)) {
+                        if (player.id === 'khabib') await claimKhabibFree();
+                        else if (player.tier === 'CELEB') { profile.inventory.push(player.id); await saveProfile(); }
+                        else await grantFreeBase(player.id);
+                        updateHud();
+                    }
+                    selectPlayer(player);
+                };
+                container.appendChild(card);
+            });
+        }
+
+        function selectPlayer(player) {
+            if(selectingPlayer === 'trn') {
+                if(trnMode === '1v1') {
+                    trnP1Data = player;
+                } else {
+                    if(!Array.isArray(trnP1Data)) trnP1Data = [null, null];
+                    trnP1Data[trnSelectIdx] = player;
+                }
+                hideAllScreens();
+                document.getElementById('tournament-screen').style.display = 'flex';
+                renderTrnSlots();
+                return;
+            }
+            if(selectingPlayer === 1) {
+                p1Data = player;
+                if(gameMode === 1) { selectingPlayer = 'bot'; updateRosterUI(); }
+                else { selectingPlayer = 2; updateRosterUI(); }
+            } else {
+                p2Data = player;
+                startGame();
+            }
+        }
+
+        // === OYIN DVIJOGI ===
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        let goalHeight = 400;
+        const PBOX_W = 280; // jarima maydoni kengligi — draw() va Khabib pushka mantig'ida ishlatiladi
+        function resize() {
+            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+            // Darvoza balandligi ekran o'lchamiga moslashadi — kichik ekranda haddan tashqari katta bo'lib ketmaydi
+            goalHeight = Math.max(180, Math.min(460, canvas.height * 0.46));
+        }
+        window.addEventListener('resize', resize); resize();
+
+        let isGameOver = true, score = {p1:0,p2:0}, isGoalScored = false, lastTouched = null;
+        const keys = {};
+        window.addEventListener('keydown', e => {
+            keys[e.code] = true;
+            if(e.code==='KeyR' && p1 && p1.data.id==='khabib' && !isGoalScored)
+                khabibPushkaCharged = true;
+            // E — Khabib yashirin kuch toggle (hech qayerda ko'rsatilmaydi)
+            if(e.code==='KeyE' && p1 && p1.data.id==='khabib' && !isGoalScored)
+                khabibSirliOn = !khabibSirliOn;
+            if(e.code==='Escape' && !isGameOver)
+                togglePause();
+        });
+        window.addEventListener('keyup', e => { keys[e.code] = false; });
+
+        let ball = {x:0,y:0,r:16,vx:0,vy:0,trail:[]};
+        let khabibPushkaCharged = false;
+        let khabibSirliOn = false;
+        let ballSpin = 0;   // Roberto Carlos "curve" effekti uchun to'p aylanishi
+
+        // 4 o'yinchi: p1, p1b (1-jamoa), p2, p2b (2-jamoa/bot)
+        let p1, p2, p1b, p2b;
+        let is2v2 = false;
+        let particles = [];
+
+        class Player {
+            constructor(x,y,data){ this.x=x;this.y=y;this.data=data;this.r=data.stats.size;this.vx=0;this.vy=0;this.speed=data.stats.speed;this.kickPower=data.stats.power; }
+            hasAbility(a){ return this.data.abilities.includes(a); }
+        }
+
+        function resetPositions() {
+            const W=canvas.width,H=canvas.height;
+            if(is2v2){
+                p1.y=H*0.38; p2.y=H*0.38;
+                if(p1b){p1b.x=W*0.22;p1b.y=H*0.62;p1b.vx=0;p1b.vy=0;}
+                if(p2b){p2b.x=W*0.78;p2b.y=H*0.62;p2b.vx=0;p2b.vy=0;}
+            } else {
+                p1.y=H/2; p2.y=H/2; // to'p bilan bir qatorda — to'g'ri saf tortadi
+            }
+            p1.x=W*0.22; p1.vx=0; p1.vy=0;
+            p2.x=W*0.78; p2.vx=0; p2.vy=0;
+            ball.x=W/2; ball.y=H/2; ball.vx=0; ball.vy=0; ball.trail=[];
+            lastTouched=null; isGoalScored=false;
+            khabibPushkaCharged=false; khabibSirliOn=false; ballSpin=0;
+        }
+
+        let loopRunning = false;
+
+        function startGame() {
+            is2v2=false; p1b=null; p2b=null;
+            isGameOver=false; score.p1=0; score.p2=0;
+            p1=new Player(0,0,p1Data); p2=new Player(0,0,p2Data);
+            document.getElementById('p1-name').innerText=p1.data.name;
+            document.getElementById('p2-name').innerText=p2.data.name;
+            document.getElementById('s1').innerText='0';
+            document.getElementById('s2').innerText='0';
+            document.getElementById('selection-screen').style.display='none';
+            document.getElementById('ui').style.display='flex';
+            document.getElementById('pauseBtn').style.display='flex';
+            isPaused = false;
+            resetPositions();
+            updateTouchUI(); checkOrientation();
+            showMatchIntro(p1.data.name, p1.data.glow, p2.data.name, p2.data.glow);
+            if(!loopRunning){loopRunning=true;loop();}
+        }
+
+        function startGame2v2(d1a,d1b,d2a,d2b) {
+            is2v2=true;
+            isGameOver=false; score.p1=0; score.p2=0;
+            p1=new Player(0,0,d1a); p1b=new Player(0,0,d1b);
+            p2=new Player(0,0,d2a); p2b=new Player(0,0,d2b);
+            document.getElementById('p1-name').innerText=d1a.name+' & '+d1b.name;
+            document.getElementById('p2-name').innerText=d2a.name+' & '+d2b.name;
+            document.getElementById('s1').innerText='0';
+            document.getElementById('s2').innerText='0';
+            document.getElementById('ui').style.display='flex';
+            document.getElementById('pauseBtn').style.display='flex';
+            isPaused = false;
+            resetPositions();
+            updateTouchUI(); checkOrientation();
+            showMatchIntro(d1a.name+' & '+d1b.name, d1a.glow, d2a.name+' & '+d2b.name, d2a.glow);
+            if(!loopRunning){loopRunning=true;loop();}
+        }
+
+        function createParticles(x,y,color,amount) {
+            if(particles.length>120) particles.splice(0,particles.length-80);
+            for(let i=0;i<amount;i++) particles.push({x,y,vx:(Math.random()-0.5)*18,vy:(Math.random()-0.5)*18,r:Math.random()*4+2,c:color,a:1});
+        }
+
+        function triggerGoal(scorer) {
+            isGoalScored=true;
+            let epoch = matchEpoch; // agar shu vaqt ichida "Bosh menyuga qaytish" bosilsa, pastdagi setTimeout bekor bo'ladi
+            let txt=document.getElementById("goalOverlay");
+            if(scorer==='p1'){
+                score.p1++;
+                txt.innerHTML=`${p1.data.name.toUpperCase()} GOOOOL!`;
+                txt.style.color=p1.data.glow;
+                createParticles(ball.x,ball.y,p1.data.glow,80);
+            } else {
+                score.p2++;
+                txt.innerHTML=`${p2.data.name.toUpperCase()} GOOOOL!`;
+                txt.style.color=p2.data.glow;
+                createParticles(ball.x,ball.y,p2.data.glow,80);
+            }
+            document.getElementById('s1').innerText=score.p1;
+            document.getElementById('s2').innerText=score.p2;
+            txt.style.display='block';txt.style.animation='none';txt.offsetHeight;
+            txt.style.animation='pop 2s ease-out forwards';
+            ball.vx=0;ball.vy=0;
+            if (typeof checkChallengeProgress === 'function') checkChallengeProgress();
+            const roundWinGoals=3;
+            let roundOver=trnActive&&(score.p1>=roundWinGoals||score.p2>=roundWinGoals);
+            if(roundOver){
+                isGameOver=true;
+                let p1TeamName = (is2v2 && p1b) ? `${p1.data.name} & ${p1b.data.name}` : p1.data.name;
+                let p2TeamName = (is2v2 && p2b) ? `${p2.data.name} & ${p2b.data.name}` : p2.data.name;
+                let opponentTier = p2.data.tier; // 2v2'da p2b ham bo'lishi mumkin, lekin soddalik uchun p2 asosiy hisoblanadi
+                setTimeout(()=>{ if(epoch!==matchEpoch) return; txt.style.display='none';finishTrnRound(score.p1,score.p2,p1TeamName,p2TeamName,opponentTier);},2000);
+            } else {
+                setTimeout(()=>{ if(epoch!==matchEpoch) return; txt.style.display='none';resetPositions();},2000);
+            }
+        }
+
+        function getContrastColor(c) {
+            let r=128,g=128,b=128;
+            if(c.startsWith('#')){let h=c.slice(1);if(h.length===3)h=h.split('').map(x=>x+x).join('');r=parseInt(h.substring(0,2),16);g=parseInt(h.substring(2,4),16);b=parseInt(h.substring(4,6),16);}
+            else if(c.startsWith('hsl')){let m=c.match(/hsl\(\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)%\s*,\s*(\d+(?:\.\d+)?)%\s*\)/);if(m){let h=parseFloat(m[1]),s=parseFloat(m[2])/100,l=parseFloat(m[3])/100,cc=(1-Math.abs(2*l-1))*s,x=cc*(1-Math.abs((h/60)%2-1)),mm=l-cc/2,rp,gp,bp;if(h<60){rp=cc;gp=x;bp=0;}else if(h<120){rp=x;gp=cc;bp=0;}else if(h<180){rp=0;gp=cc;bp=x;}else if(h<240){rp=0;gp=x;bp=cc;}else if(h<300){rp=x;gp=0;bp=cc;}else{rp=cc;gp=0;bp=x;}r=Math.round((rp+mm)*255);g=Math.round((gp+mm)*255);b=Math.round((bp+mm)*255);}}
+            return ((r*299+g*587+b*114)/1000)>150?"#000":"#fff";
+        }
+
+        function getInitials(name) {
+            let p=name.replace(/\./g,'').split(' ').filter(Boolean);
+            if(p.length===1) return p[0].substring(0,3).toUpperCase();
+            let last=p[p.length-1];
+            if(last.length<=2&&p.length>1) last=p[p.length-2];
+            return last.substring(0,3).toUpperCase();
+        }
+
+        // Khabib E — sirli kuch: to'pni har frame ozgina raqib darvozasiga tortadi
+        function khabibMagicPull() {
+            if(!khabibSirliOn||!p1||p1.data.id!=='khabib') return;
+            let gx=canvas.width-5, gy=canvas.height/2;
+            let dx=gx-ball.x, dy=gy-ball.y, d=Math.hypot(dx,dy)||1;
+            ball.vx+=(dx/d)*1.8; ball.vy+=(dy/d)*1.8;
+            if(Math.random()<0.25) createParticles(ball.x,ball.y,'#9900ff',3);
+        }
+
+        function resolveCollision(p,b) {
+            let dx=b.x-p.x,dy=b.y-p.y,dist=Math.hypot(dx,dy);
+            if(dist===0){dist=0.01;dx=0.01;dy=0.01;}
+            let reach=0;
+            if(p.hasAbility('goalkeeper')) reach+=10;
+            if(p.hasAbility('magnet')) reach+=15;
+            let effR=p.r+reach;
+            if(dist<effR+b.r){
+                let isKP1=(p===p1&&p.data.id==='khabib');
+                let isPushka=isKP1?khabibPushkaCharged:p.hasAbility('pushka');
+                let isDribble=isKP1&&!khabibPushkaCharged;
+                // Sirli kuch + R = to'p to'g'ri darvozaga
+                let isSirli=isKP1&&khabibSirliOn&&khabibPushkaCharged;
+                let isTeam1=(p===p1||p===p1b);
+                lastTouched=isTeam1?'p1':'p2';
+                let inZone=isTeam1?(b.x>canvas.width*0.68):(b.x<canvas.width*0.32);
+                let isFin=p.hasAbility('finisher')&&inZone;
+                let ov=(effR+b.r)-dist, nx=dx/dist, ny=dy/dist;
+                b.x+=nx*ov; b.y+=ny*ov;
+
+                if(isSirli){
+                    // To'p darvoza markaziga — garantiyali gol
+                    let gx=canvas.width-8,gy=canvas.height/2;
+                    let dd=Math.hypot(gx-b.x,gy-b.y)||1;
+                    b.vx=(gx-b.x)/dd*85; b.vy=(gy-b.y)/dd*85;
+                    khabibPushkaCharged=false;
+                    createParticles(b.x,b.y,'#cc00ff',60);
+                    createParticles(b.x,b.y,'#ffffff',30);
+                } else if(isDribble){
+                    b.vx=p.vx*0.95+nx*2; b.vy=p.vy*0.95+ny*2;
+                } else {
+                    let hasSuperPushka = p.data.special === 'super_pushka';
+                    let mult=isPushka?(isKP1?2.4:(hasSuperPushka?2.1:1.5)):(isFin?1.4:1.0);
+                    let impact=(Math.hypot(p.vx,p.vy)*0.9+p.kickPower*3)*mult;
+                    if(p.hasAbility('dribbler')&&impact<18) impact*=0.65;
+                    b.vx=nx*impact+p.vx*0.4; b.vy=ny*impact+p.vy*0.4;
+                    let mx=(isPushka&&isKP1)?72:(isPushka&&hasSuperPushka)?62:isPushka?42:isFin?38:30;
+                    let spd=Math.hypot(b.vx,b.vy);
+                    if(spd>mx){b.vx=b.vx/spd*mx;b.vy=b.vy/spd*mx;}
+
+                    // Roberto Carlos PRIME — "curve": to'pga aylanish (spin) beradi,
+                    // to'p havoda egilib uchadi (update() ichida Magnus effekti qo'llanadi)
+                    if(p.data.special === 'curve' && spd > 12) {
+                        // Zarba yo'nalishi va o'yinchi harakatiga qarab egilish tomoni
+                        let sideways = (p.vy * nx - p.vx * ny);
+                        ballSpin = Math.max(-1, Math.min(1, sideways * 0.22)) || (Math.random() < 0.5 ? -0.55 : 0.55);
+                        ballSpin *= 1.6;
+                    } else if (Math.abs(ballSpin) > 0.01) {
+                        ballSpin *= 0.3; // boshqa o'yinchi tepsa spin deyarli yo'qoladi
+                    }
+                }
+
+                if(isPushka&&!isSirli){
+                    let superP = p.data.special === 'super_pushka';
+                    createParticles(b.x,b.y,isKP1?'#ffd700':p.data.glow,isKP1?60:(superP?40:20));
+                    if(superP) createParticles(b.x,b.y,'#ffffff',20);
+                    if(isKP1){
+                        createParticles(b.x,b.y,'#ffffff',25);
+                        khabibPushkaCharged=false;
+                        let gT=canvas.height/2-goalHeight/2,gB=canvas.height/2+goalHeight/2;
+                        let pbX=canvas.width-PBOX_W-5;
+                        [p2,p2b].forEach(op=>{
+                            if(!op) return;
+                            let inBox=(op.x>=pbX)&&(op.y>=gT-85)&&(op.y<=gB+85);
+                            if(!inBox){let ex=op.x-p1.x,ey=op.y-p1.y,ed=Math.hypot(ex,ey)||1;op.vx=(ex/ed)*28;op.vy=(ey/ed)*28;createParticles(op.x,op.y,'#ff4400',18);}
+                        });
+                    }
+                } else if(!isDribble&&!isSirli){
+                    createParticles(b.x,b.y,p.data.glow,isFin?15:5);
+                }
+            }
+        }
+
+        function botMove(bot) {
+            let tx=ball.x,ty=ball.y;
+            if(bot.hasAbility('goalkeeper')&&ball.x<canvas.width/2){
+                tx=canvas.width-100;ty=Math.max(canvas.height/2-100,Math.min(canvas.height/2+100,ball.y));
+            } else if(ball.x>canvas.width-60){
+                tx=ball.x-30;ty=ball.y>canvas.height/2?ball.y-50:ball.y+50;
+            } else if(bot.x<ball.x&&ball.x>canvas.width/2){
+                tx=ball.x+50;ty=ball.y>bot.y?ball.y-40:ball.y+40;
+            } else if(ball.x<canvas.width/2&&ball.vx>0){
+                tx=canvas.width-150;ty=canvas.height/2;
+            }
+            let dx=tx-bot.x,dy=ty-bot.y,d=Math.hypot(dx,dy);
+            let ac=bot.hasAbility('overdrive')?0.9:0.6;
+            if(d>0){bot.vx+=(dx/d)*ac;bot.vy+=(dy/d)*ac;}else{bot.vx*=0.85;bot.vy*=0.85;}
+        }
+
+        function playerCollide(a,b) {
+            let dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy);
+            if(d>0&&d<a.r+b.r){
+                let ov=(a.r+b.r)-d;
+                let am=(a.hasAbility('wall')?2:1)*(a.hasAbility('unstoppable')?4:1);
+                let bm=(b.hasAbility('wall')?2:1)*(b.hasAbility('unstoppable')?4:1);
+                let tm=am+bm;
+                a.x-=(dx/d)*ov*(bm/tm);a.y-=(dy/d)*ov*(bm/tm);
+                b.x+=(dx/d)*ov*(am/tm);b.y+=(dy/d)*ov*(am/tm);
+                if(a.hasAbility('takedown')){b.vx*=0.15;b.vy*=0.15;}
+                if(b.hasAbility('takedown')){a.vx*=0.15;a.vy*=0.15;}
+            }
+        }
+
+        function update() {
+            if(isPaused) return;
+            if(isGoalScored){
+                for(let i=particles.length-1;i>=0;i--){let p=particles[i];p.x+=p.vx;p.y+=p.vy;p.a-=0.02;if(p.a<=0)particles.splice(i,1);}
+                return;
+            }
+            // P1 — WASD yoki sensorli joystick (analog)
+            let f1=p1.hasAbility('overdrive')?0.97:0.85;
+            if (touchAxis.active) {
+                // Analog: joystick qanchalik uzoq surilsa, shunchalik kuchli tezlanish
+                p1.vx += touchAxis.x * 1.5;
+                p1.vy += touchAxis.y * 1.5;
+            } else {
+                if(keys.KeyA)p1.vx-=1.2;else if(keys.KeyD)p1.vx+=1.2;else p1.vx*=f1;
+                if(keys.KeyW)p1.vy-=1.2;else if(keys.KeyS)p1.vy+=1.2;else p1.vy*=f1;
+            }
+            // P1b (2v2 da) — IJKL
+            if(is2v2&&p1b){
+                let f1b=p1b.hasAbility('overdrive')?0.97:0.85;
+                if(keys.KeyJ)p1b.vx-=1.2;else if(keys.KeyL)p1b.vx+=1.2;else p1b.vx*=f1b;
+                if(keys.KeyI)p1b.vy-=1.2;else if(keys.KeyK)p1b.vy+=1.2;else p1b.vy*=f1b;
+            }
+            // P2 — bot yoki 2-o'yinchi (oddiy 1v1 do'stga qarshi rejimida Arrow)
+            if(gameMode===2&&!trnActive&&!is2v2){
+                let f2=p2.hasAbility('overdrive')?0.97:0.85;
+                if(keys.ArrowLeft)p2.vx-=1.2;else if(keys.ArrowRight)p2.vx+=1.2;else p2.vx*=f2;
+                if(keys.ArrowUp)p2.vy-=1.2;else if(keys.ArrowDown)p2.vy+=1.2;else p2.vy*=f2;
+            } else {
+                botMove(p2);
+                if(is2v2&&p2b) botMove(p2b);
+            }
+
+            let allP=[p1,p2];
+            if(is2v2){if(p1b)allP.push(p1b);if(p2b)allP.push(p2b);}
+
+            allP.forEach(p=>{
+                let mx=p.hasAbility('speed_boost')?p.speed*1.3:p.speed;
+                let s=Math.hypot(p.vx,p.vy);
+                if(s>mx){p.vx=p.vx/s*mx;p.vy=p.vy/s*mx;}
+                p.x+=p.vx;p.y+=p.vy;
+            });
+
+            const mg=5,W=canvas.width,H=canvas.height;
+            allP.forEach(p=>{
+                if(p.x-p.r<mg){p.x=mg+p.r;p.vx*=-0.5;}
+                if(p.x+p.r>W-mg){p.x=W-mg-p.r;p.vx*=-0.5;}
+                if(p.y-p.r<mg){p.y=mg+p.r;p.vy*=-0.5;}
+                if(p.y+p.r>H-mg){p.y=H-mg-p.r;p.vy*=-0.5;}
+            });
+
+            allP.forEach(p=>resolveCollision(p,ball));
+
+            // O'yinchilar to'qnashuvi — Khabib pushka zaryadida ghost
+            let ghost=p1&&p1.data.id==='khabib'&&khabibPushkaCharged;
+            for(let i=0;i<allP.length;i++)
+                for(let j=i+1;j<allP.length;j++){
+                    let aIsK=allP[i]===p1&&ghost, bIsK=allP[j]===p1&&ghost;
+                    if(!aIsK&&!bIsK) playerCollide(allP[i],allP[j]);
+                }
+
+            khabibMagicPull();
+
+            // Roberto Carlos PRIME "curve" — Magnus effekti: aylanish to'p yo'nalishiga
+            // perpendikulyar kuch beradi, shu sababli to'p egilib (burilib) uchadi.
+            if (Math.abs(ballSpin) > 0.01) {
+                let bs = Math.hypot(ball.vx, ball.vy);
+                if (bs > 3) {
+                    let nx = ball.vx / bs, ny = ball.vy / bs;
+                    // perpendikulyar vektor (-ny, nx)
+                    ball.vx += -ny * ballSpin;
+                    ball.vy +=  nx * ballSpin;
+                    if (Math.random() < 0.5) createParticles(ball.x, ball.y, '#ffd700', 1);
+                }
+                ballSpin *= 0.965; // aylanish asta-sekin so'nadi
+                if (Math.abs(ballSpin) < 0.01) ballSpin = 0;
+            }
+
+            ball.x+=ball.vx;ball.y+=ball.vy;
+            ball.vx*=0.985;ball.vy*=0.985;
+            ball.trail.push({x:ball.x,y:ball.y});if(ball.trail.length>15)ball.trail.shift();
+
+            let gTop=H/2-goalHeight/2,gBot=H/2+goalHeight/2;
+            if(ball.y-ball.r<mg){ball.y=mg+ball.r;ball.vy*=-0.8;}
+            if(ball.y+ball.r>H-mg){ball.y=H-mg-ball.r;ball.vy*=-0.8;}
+            if(ball.x-ball.r<mg){
+                if(ball.y>gTop&&ball.y<gBot) triggerGoal('p2');
+                else{ball.x=mg+ball.r;ball.vx*=-0.8;}
+            }
+            if(ball.x+ball.r>W-mg){
+                if(ball.y>gTop&&ball.y<gBot) triggerGoal('p1');
+                else{ball.x=W-mg-ball.r;ball.vx*=-0.8;}
+            }
+            for(let i=particles.length-1;i>=0;i--){let p=particles[i];p.x+=p.vx;p.y+=p.vy;p.a-=0.02;if(p.a<=0)particles.splice(i,1);}
+        }
+
+        function draw() {
+            const W=canvas.width,H=canvas.height,mg=5;
+            let sw=90;
+            for(let i=0;i<W;i+=sw){ctx.fillStyle=(i/sw)%2===0?"#04120a":"#061a0d";ctx.fillRect(i,0,sw,H);}
+
+            ctx.strokeStyle="rgba(255,255,255,0.22)";ctx.lineWidth=3;
+            ctx.strokeRect(mg,mg,W-mg*2,H-mg*2);
+            ctx.beginPath();ctx.moveTo(W/2,mg);ctx.lineTo(W/2,H-mg);ctx.stroke();
+            ctx.beginPath();ctx.arc(W/2,H/2,210,0,Math.PI*2);ctx.stroke();
+            ctx.beginPath();ctx.arc(W/2,H/2,5,0,Math.PI*2);ctx.fillStyle='rgba(255,255,255,0.3)';ctx.fill();
+
+            let gTop=H/2-goalHeight/2;
+            ctx.strokeRect(mg,gTop-85,PBOX_W,goalHeight+170);
+            ctx.strokeRect(W-PBOX_W-mg,gTop-85,PBOX_W,goalHeight+170);
+            ctx.beginPath();ctx.arc(mg+175,H/2,5,0,Math.PI*2);ctx.fillStyle='rgba(255,255,255,0.3)';ctx.fill();
+            ctx.beginPath();ctx.arc(W-mg-175,H/2,5,0,Math.PI*2);ctx.fill();
+
+            ctx.shadowBlur=18;ctx.shadowColor='#00ffcc';ctx.strokeStyle='#00ffcc';ctx.lineWidth=5;
+            ctx.strokeRect(mg,gTop,75,goalHeight);ctx.fillStyle="rgba(0,255,204,0.13)";ctx.fillRect(mg,gTop,75,goalHeight);
+            ctx.shadowBlur=0;
+            ctx.shadowBlur=18;ctx.shadowColor='#ff3366';ctx.strokeStyle='#ff3366';ctx.lineWidth=5;
+            ctx.strokeRect(W-75-mg,gTop,75,goalHeight);ctx.fillStyle="rgba(255,51,102,0.13)";ctx.fillRect(W-75-mg,gTop,75,goalHeight);
+            ctx.shadowBlur=0;
+
+            // Khabib E sirli kuch aura (to'p atrofida)
+            if(khabibSirliOn&&p1&&p1.data.id==='khabib'){
+                let gr=ctx.createRadialGradient(ball.x,ball.y,4,ball.x,ball.y,110);
+                gr.addColorStop(0,'rgba(153,0,255,0.22)');gr.addColorStop(1,'rgba(153,0,255,0)');
+                ctx.fillStyle=gr;ctx.beginPath();ctx.arc(ball.x,ball.y,110,0,Math.PI*2);ctx.fill();
+            }
+
+            // Top izi
+            let bSpd=Math.hypot(ball.vx,ball.vy);
+            ctx.beginPath();
+            for(let i=0;i<ball.trail.length;i++){
+                ctx.globalAlpha=(i/ball.trail.length)*(bSpd>40?1:0.7);
+                ctx.lineWidth=ball.r*(bSpd>40?2.5:bSpd>20?2:1.2);
+                ctx.strokeStyle=bSpd>50?'#ffffff':bSpd>35?'#ffd700':bSpd>25?'#ff3300':bSpd>15?'#ff9900':'#ffcc00';
+                if(i===0)ctx.moveTo(ball.trail[i].x,ball.trail[i].y);else ctx.lineTo(ball.trail[i].x,ball.trail[i].y);
+            }
+            ctx.lineCap="round";ctx.stroke();ctx.globalAlpha=1;
+
+            ctx.shadowBlur=bSpd>40?18:8;
+            ctx.shadowColor=khabibSirliOn?'#9900ff':bSpd>40?'#ffd700':'#fff';
+            ctx.beginPath();ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();
+            ctx.fillStyle='#111';ctx.beginPath();ctx.arc(ball.x,ball.y,ball.r*0.4,0,Math.PI*2);ctx.fill();
+            ctx.shadowBlur=0;
+
+            let drawP=(p)=>{
+                if(!p) return;
+                let isK=p===p1&&p.data.id==='khabib';
+                // Khabib pushka zaryad halqa
+                if(isK&&khabibPushkaCharged){
+                    ctx.beginPath();ctx.arc(p.x,p.y,p.r+8,0,Math.PI*2);
+                    ctx.strokeStyle=khabibSirliOn?'#cc00ff':'#fff';ctx.lineWidth=3;ctx.stroke();
+                }
+                ctx.shadowBlur=isK?22:12;ctx.shadowColor=p.data.glow;
+                if(isK){
+                    let gr=ctx.createRadialGradient(p.x-p.r*0.3,p.y-p.r*0.3,2,p.x,p.y,p.r);
+                    gr.addColorStop(0,'#fffde0');
+                    gr.addColorStop(0.5,khabibSirliOn?'#cc00ff':'#ffd700');
+                    gr.addColorStop(1,khabibSirliOn?'#550088':'#b8860b');
+                    ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=gr;ctx.fill();
+                    ctx.lineWidth=5;ctx.strokeStyle=khabibPushkaCharged?'#fff':(khabibSirliOn?'#cc00ff':'#ffd700');ctx.stroke();
+                } else {
+                    ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=p.data.color;ctx.fill();
+                    ctx.lineWidth=5;ctx.strokeStyle=p.data.glow;ctx.stroke();
+                }
+                ctx.shadowBlur=0;
+                ctx.fillStyle=isK?'#000':getContrastColor(p.data.color);
+                ctx.font=`bold ${isK?17:14}px Arial`;ctx.textAlign="center";ctx.textBaseline="middle";
+                ctx.fillText(getInitials(p.data.name),p.x,p.y);
+                // Khabib R hint
+                if(isK){
+                    ctx.globalAlpha=khabibPushkaCharged?1:0.5;
+                    ctx.fillStyle=khabibPushkaCharged?(khabibSirliOn?'#cc00ff':'#ffd700'):'#777';
+                    ctx.font='bold 11px Arial';ctx.textAlign='center';
+                    ctx.fillText(khabibPushkaCharged?'💥 PUSHKA!':'[R] Pushka',p.x,p.y-p.r-13);
+                    ctx.globalAlpha=1;
+                }
+                // 2v2 da P1b tugmalari
+                if(p===p1b&&is2v2){
+                    ctx.globalAlpha=0.4;ctx.fillStyle='#aaa';ctx.font='bold 10px Arial';ctx.textAlign='center';
+                    ctx.fillText('IJKL',p.x,p.y-p.r-11);ctx.globalAlpha=1;
+                }
+            };
+
+            let allP=[p1,p2];
+            if(is2v2){if(p1b)allP.push(p1b);if(p2b)allP.push(p2b);}
+            allP.forEach(drawP);
+
+            ctx.shadowBlur=0;
+            particles.forEach(pt=>{ctx.globalAlpha=pt.a;ctx.fillStyle=pt.c;ctx.beginPath();ctx.arc(pt.x,pt.y,pt.r,0,Math.PI*2);ctx.fill();});
+            ctx.globalAlpha=1;
+        }
+
+        function loop() {
+            if(!isGameOver) update();
+            if(p1&&p2) draw();
+            requestAnimationFrame(loop);
+        }
+
+        function fullCatalog() { return db.concat(celebDb).concat(primeDb); }
+        function catalogById(id) { return fullCatalog().find(p => p.id === id) || null; }
+
+        // ---- Ekran kirish animatsiyasi ----
+        function playEnterAnim(el) {
+            if (!el) return;
+            el.classList.remove('screen-enter');
+            void el.offsetWidth; // reflow — animatsiyani qayta boshlash uchun
+            el.classList.add('screen-enter');
+        }
+
+        // ---- Match intro (VS animatsiyasi) ----
+        function showMatchIntro(p1name, p1color, p2name, p2color) {
+            const el = document.getElementById('matchIntro');
+            if (!el) return;
+            document.getElementById('miP1Name').textContent = p1name;
+            document.getElementById('miP1Name').style.color = p1color;
+            document.getElementById('miP2Name').textContent = p2name;
+            document.getElementById('miP2Name').style.color = p2color;
+            el.classList.remove('show'); void el.offsetWidth;
+            el.classList.add('show');
+            setTimeout(() => el.classList.remove('show'), 1600);
+        }
+
+        // ---- Eng Zo'rlar (Best Players / Hall of Fame) ----
+        const TIER_RANK = { MAX: 0, PRIME: 0.5, TOP10: 1, TOP40: 2, TOP80: 3, TOP130: 4, BASE: 5, CELEB: 2.5 };
+        function powerScore(p) { return (p.abilities?p.abilities.length:0)*100 + p.stats.speed*3 + p.stats.power*10; }
+
+        // Zo'rligi bo'yicha yagona tartiblash mezoni (do'kon, inventar, tanlash ekrani — hammasi shuni ishlatadi)
+        function strengthComparator(a, b) {
+            let ta = TIER_RANK[a.tier] ?? 9, tb = TIER_RANK[b.tier] ?? 9;
+            if (ta !== tb) return ta - tb;
+            if (a.tier === 'CELEB' && b.tier === 'CELEB' && a.star !== b.star) return b.star - a.star;
+            return powerScore(b) - powerScore(a);
+        }
+        function bestPlayersRanking() {
+            return fullCatalog().slice().sort((a,b) => {
+                let ta = TIER_RANK[a.tier] ?? 9, tb = TIER_RANK[b.tier] ?? 9;
+                if (ta !== tb) return ta - tb;
+                return powerScore(b) - powerScore(a);
+            });
+        }
+        function openBestPlayers() {
+            hideAllScreens();
+            let el = document.getElementById('bestplayers-screen');
+            el.style.display = 'flex'; playEnterAnim(el);
+            renderBestPlayers();
+        }
+        function renderBestPlayers() {
+            let list = document.getElementById('bestplayers-list');
+            let ranked = bestPlayersRanking().slice(0, 40);
+            list.innerHTML = ranked.map((p, i) => {
+                let rank = i + 1;
+                let isKhabib = p.id === 'khabib';
+                let lock = isKhabib ? "👑 Olib bo'lmaydi" : (profile && ownsPlayer(p.id) ? '✅ Sizda bor' : '');
+                let tag = p.tier === 'PRIME' ? '🔥 PRIME' : p.tier === 'CELEB' ? '🌟 Celebrity' : p.tier === 'MAX' ? '👑 THE BEST OF THE BEST' : (p.abilities.length + ' ta qobiliyat');
+                return `<div class="rank-row ${rank===1?'rank-1':''}">
+                    <div class="rank-num">${rank}</div>
+                    <div class="rank-avatar" style="border-color:${p.glow};color:${p.color}">${getInitials(p.name)}</div>
+                    <div class="rank-info">
+                        <div class="rank-name" style="color:${p.color}">${p.name}</div>
+                        <div class="rank-tag">${tag}</div>
+                    </div>
+                    <div class="rank-lock">${lock}</div>
+                </div>`;
+            }).join('');
+        }
+
+        // ============================================================
+        // HISOB / IQTISODIYOT / MAVSUM TIZIMI
+        // ============================================================
+
+        // --- QATTIQ BELGILANGAN MUDDAT (server yoki saqlash holatidan mustaqil) ---
+        // Bu sana/vaqt hech qayerda saqlanmaydi va HECH QACHON o'zgarmaydi — shuning
+        // uchun kim qachon kirmasin (yangi hisob bo'lsa ham, saqlash ishlamasa ham)
+        // barcha qurilma buni bir xil hisoblaydi. 2026-yil 16-avgust, soat 13:00
+        // (brauzeringizning mahalliy vaqti bo'yicha) — shundan keyin butunlay yopiladi.
+        // ESLATMA: Prime futbolchilar bu oynaga KIRMAYDI — ular doim tanga evaziga.
+        const FREE_WINDOW_DEADLINE = new Date(2026, 7, 16, 13, 0, 0).getTime();
+        // --- CHEKSIZ VALYUTA OYNASI: bugun kechqurun soat 00:00 gacha ---
+        // Bu vaqt ichida tanga va olmos cheksiz (∞) — hamma narsani bemalol olish mumkin.
+        // 00:00 dan keyin: har kimga +50000 tanga qo'shiladi, olmos aniq 1000 ta bo'lib qoladi,
+        // va olinmagan Legends futbolchilari +100000 tangaga qimmatlashadi.
+        const UNLIMITED_DEADLINE = new Date(2026, 7, 17, 0, 0, 0).getTime();
+        // --- YANGI PRIME FUTBOLCHILARI UCHUN TEKIN OYNA: ertaga soat 12:00 gacha ---
+        // Shu vaqtgacha 20 ta yangi Prime futbolchisi bepul olinadi, keyin 100000+ tanga.
+        const NEW_PRIME_FREE_DEADLINE = new Date(2026, 7, 17, 12, 0, 0).getTime();
+        const PRIME_MIN_PRICE = 100000;    // Prime futbolchilar hech qachon bundan arzon emas
+        const MIDNIGHT_COIN_BONUS = 50000;
+        const MIDNIGHT_GEM_SET = 1000;
+        const LEGENDS_SURCHARGE = 100000;  // olinmagan Legends futbolchilariga qo'shiladigan narx
+        const FIVE_STAR_MIN_PRICE = 20000; // 5 yulduzli oddiy (TOP10) futbolchilar uchun eng kam narx
+        const SEASON_END_DEADLINE = FREE_WINDOW_DEADLINE + 3 * 24 * 60 * 60 * 1000; // +3 kun
+        const SEASON_NAME = 'Prime Players';
+
+        // Zo'rligi va mashhurligiga qarab narxlar
+        const TIER_PRICE = { TOP10: 20000, TOP40: 8000, TOP80: 3000, TOP130: 1000, BASE: 300 };
+        // Celebrity (Legends) yulduzlariga qarab narx
+        const CELEB_STAR_PRICE = { 4: 15000, 3: 6000, 2: 2000, 1: 500 };
+        const PACK_COST_GEMS = 5;
+        const STARTER_COINS = 500, STARTER_GEMS = 10;
+
+        let profile = null;      // { nickname, coins, gems, inventory:[ids], khabibClaimed, createdAt }
+
+        // --- IKKI REJIMLI SAQLASH ---
+        // Claude.ai artifaktida ochilganda window.storage mavjud bo'ladi (bulutli, hisobga bog'liq).
+        // Fayl yuklab olinib mustaqil (browserda to'g'ridan-to'g'ri) ochilganda window.storage
+        // UMUMAN MAVJUD BO'LMAYDI (bu faqat Claude.ai ichida ishlaydigan maxsus API) — shu holatda
+        // localStorage'ga o'tamiz, bu esa xuddi shu qurilma/brauzerda profilni doimiy saqlaydi.
+        const HAS_CLOUD_STORAGE = (typeof window !== 'undefined') && !!window.storage;
+
+        async function storageGet(key, shared) {
+            try {
+                if (HAS_CLOUD_STORAGE) {
+                    const r = await window.storage.get(key, !!shared);
+                    return r && r.value ? JSON.parse(r.value) : null;
+                }
+                const raw = localStorage.getItem('herostrikers_' + key);
+                return raw ? JSON.parse(raw) : null;
+            } catch(e) { return null; }
+        }
+        async function storageSet(key, value, shared) {
+            try {
+                if (HAS_CLOUD_STORAGE) {
+                    await window.storage.set(key, JSON.stringify(value), !!shared);
+                } else {
+                    localStorage.setItem('herostrikers_' + key, JSON.stringify(value));
+                }
+                return true;
+            } catch(e) { console.error('storage set failed', key, e); return false; }
+        }
+
+        function isFreeWindowActive() { return Date.now() < FREE_WINDOW_DEADLINE; }
+        function isSeasonActive() { return Date.now() < SEASON_END_DEADLINE; }
+        function msLeftInFreeWindow() { return Math.max(0, FREE_WINDOW_DEADLINE - Date.now()); }
+        function msLeftInSeason() { return Math.max(0, SEASON_END_DEADLINE - Date.now()); }
+
+        // --- Cheksiz valyuta oynasi ---
+        function isUnlimitedActive() { return Date.now() < UNLIMITED_DEADLINE; }
+        function msLeftUnlimited() { return Math.max(0, UNLIMITED_DEADLINE - Date.now()); }
+        function displayCoins() { return isUnlimitedActive() ? '∞' : profile.coins; }
+        function displayGems()  { return isUnlimitedActive() ? '∞' : profile.gems; }
+        function canAfford(cost) { return isUnlimitedActive() || profile.coins >= cost; }
+        function canAffordGems(cost) { return isUnlimitedActive() || profile.gems >= cost; }
+        function spendCoins(cost) { if (!isUnlimitedActive()) profile.coins -= cost; }
+        function spendGems(cost)  { if (!isUnlimitedActive()) profile.gems  -= cost; }
+
+        // Yangi Prime futbolchisi (primeDb2) — ertaga 12:00 gacha tekin
+        function isNewPrime(p) { return p && p.id && p.id.startsWith('prime2_'); }
+        function isNewPrimeFreeActive() { return Date.now() < NEW_PRIME_FREE_DEADLINE; }
+        function msLeftNewPrimeFree() { return Math.max(0, NEW_PRIME_FREE_DEADLINE - Date.now()); }
+
+        // --- Yagona narx hisoblagichi (hamma joyda shu ishlatiladi) ---
+        // Prime: kamida 100000, kuchiga qarab yuqoriroq.
+        // Oddiy roster: zo'rligi/mashhurligiga qarab (5 yulduzli = kamida 20000).
+        // Legends (CELEB): yulduziga qarab; 00:00 dan keyin olinmaganlari +100000.
+        function priceOf(p) {
+            if (!p) return 0;
+            if (p.tier === 'MAX') return 0;                       // Khabib sotilmaydi
+
+            if (p.tier === 'PRIME') {
+                // Yangi Prime futbolchilari 12:00 gacha butunlay tekin
+                if (isNewPrime(p) && isNewPrimeFreeActive()) return 0;
+                // Kuchiga qarab: 100000 dan boshlanadi, eng zo'rlari ancha qimmat
+                let strength = powerScore(p);              // ~ 300..800 oralig'ida
+                let scaled = PRIME_MIN_PRICE + Math.round((strength - 300) * 300);
+                return Math.max(PRIME_MIN_PRICE, scaled);
+            }
+
+            let afterMidnight = !isUnlimitedActive();
+
+            if (p.tier === 'CELEB') {
+                let base = CELEB_STAR_PRICE[p.star] || p.price || 500;
+                if (afterMidnight && !ownsPlayer(p.id)) base += LEGENDS_SURCHARGE;
+                return base;
+            }
+
+            // Oddiy roster — zo'rligiga qarab
+            if (isFreeWindowActive()) return 0;
+            let base = TIER_PRICE[p.tier] || 300;
+            if (p.tier === 'TOP10') base = Math.max(base, FIVE_STAR_MIN_PRICE);
+            return base;
+        }
+
+        // --- 00:00 dagi bir martalik o'tish ---
+        // Har bir profilda faqat BIR MARTA bajariladi (bayroq orqali), shuning uchun
+        // sahifani necha marta yangilasangiz ham bonus takrorlanmaydi.
+        async function applyMidnightTransition() {
+            if (!profile || isUnlimitedActive()) return false;
+            if (profile.midnightApplied) return false;
+            profile.coins = (profile.coins || 0) + MIDNIGHT_COIN_BONUS;
+            profile.gems = MIDNIGHT_GEM_SET;
+            profile.midnightApplied = true;
+            await saveProfile();
+            return true;
+        }
+
+        function fmtDuration(ms) {
+            let s = Math.floor(ms/1000);
+            let d = Math.floor(s/86400); s -= d*86400;
+            let h = Math.floor(s/3600); s -= h*3600;
+            let m = Math.floor(s/60); s -= m*60;
+            if (d>0) return `${d}kun ${h}soat`;
+            if (h>0) return `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+            return `${m}:${String(s).padStart(2,'0')}`;
+        }
+
+        // ---- Profilni yuklash / yaratish ----
+        // Claude.ai'da: hisobingizga avtomatik bog'lanadi. Yuklab olingan holda: shu
+        // qurilma/brauzerda saqlanadi (localStorage). Ikkala holatda ham kod kerak emas.
+        async function ensureProfile() {
+            let p = await storageGet('profile', false);
+            if (p) { profile = p; return false; } // false = mavjud profil
+            profile = {
+                nickname: "O'yinchi" + Math.floor(Math.random()*9000+1000),
+                coins: STARTER_COINS, gems: STARTER_GEMS,
+                inventory: [], khabibClaimed: false, createdAt: Date.now()
+            };
+            await saveProfile();
+            return true; // true = yangi profil
+        }
+
+        async function saveProfile() {
+            if (!profile) return;
+            await storageSet('profile', profile, false);
+        }
+
+        async function saveNickname() {
+            let v = document.getElementById('nickInput').value.trim();
+            if (!v) return;
+            profile.nickname = v.substring(0, 16);
+            await saveProfile();
+            updateHud();
+            alert('Saqlandi!');
+        }
+
+        // ---- Kolleksiya darajasi — futbolchilar zo'rligiga qarab hisoblanadi ----
+        // Khabib yagona: +20 lvl. C. Ronaldo PRIME (2-o'rin): +10 lvl. Boshqa Prime: +5 lvl.
+        // Kuchli futbolchilar (3+ qobiliyat yoki 3+ yulduzli Celebrity): +2 lvl. Qolganlari: +1 lvl.
+        function calcCollectionLevel() {
+            if (!profile || !profile.inventory) return 0;
+            let level = 0;
+            profile.inventory.forEach(id => {
+                if (id === 'khabib') { level += 20; return; }
+                if (id === 'prime_c_ronaldo') { level += 10; return; }
+                let p = catalogById(id);
+                if (!p) return;
+                if (p.tier === 'PRIME') level += 5;
+                else if (p.tier === 'CELEB') level += (p.star >= 3) ? 2 : 1;
+                else level += (p.abilities.length >= 3) ? 2 : 1;
+            });
+            return level;
+        }
+
+        function updateHud() {
+            if (!profile) return;
+            document.getElementById('hudCoins').innerText = displayCoins();
+            document.getElementById('hudGems').innerText = displayGems();
+            document.getElementById('hudNick').innerText = profile.nickname;
+            let lvlEl = document.getElementById('levelBadge');
+            if (lvlEl) lvlEl.textContent = `Lvl ${calcCollectionLevel()}`;
+        }
+
+        function updateSeasonBanner() {
+            let el = document.getElementById('seasonBanner');
+            el.style.display = 'block';
+            let title = document.getElementById('sbTitle');
+            let timer = document.getElementById('sbTimer');
+            let sub = document.getElementById('sbSub');
+            if (isUnlimitedActive()) {
+                title.innerHTML = "♾️ CHEKSIZ TANGA VA OLMOS! HAMMA NARSA BEPUL!";
+                timer.innerText = fmtDuration(msLeftUnlimited());
+                sub.innerText = "Kechqurun 00:00 da tugaydi — keyin olmos 1000 ta bo'ladi, olinmagan Legends futbolchilari +100000 🪙 qimmatlashadi. Hozir yig'ib oling!";
+                el.classList.add('urgent');
+            } else if (isNewPrimeFreeActive()) {
+                title.innerHTML = "🔥 YANGI PRIME FUTBOLCHILARI HOZIR TEKIN!";
+                timer.innerText = fmtDuration(msLeftNewPrimeFree());
+                sub.innerText = "Ertaga soat 12:00 da tugaydi — keyin har biri 100 000 🪙 dan oshadi. 20 ta yangi afsona: Maradona, Messi, Pelé, Ronaldo Nazário...";
+                el.classList.add('urgent');
+            } else if (isFreeWindowActive()) {
+                title.innerHTML = "🎉 OCHILISH SOATI — HAMMA FUTBOLCHI TEKIN! + 👑 KHABIB HOZIR OLINADI!";
+                timer.innerText = fmtDuration(msLeftInFreeWindow());
+                sub.innerText = "Bugun soat 13:00 da tugaydi — narxlar qaytadan tiklanadi va Khabib abadiy g'oyib bo'ladi!";
+                el.classList.add('urgent');
+            } else if (isSeasonActive()) {
+                title.innerHTML = `🌟 ${SEASON_NAME.toUpperCase()} MAVSUMI faol`;
+                timer.innerText = fmtDuration(msLeftInSeason());
+                sub.innerText = "Mavsum tugaguncha qolgan vaqt — Pack orqali yangi futbolchilarni yig'ib oling";
+                el.classList.remove('urgent');
+            } else {
+                title.innerHTML = `🌟 ${SEASON_NAME} mavsumi yakunlandi`;
+                timer.innerText = '';
+                sub.innerText = "Yangi mavsumlarni kuting!";
+                el.classList.remove('urgent');
+            }
+        }
+
+        let seasonTickInterval = null;
+        let midnightChecked = false;
+        function startSeasonTicker() {
+            if (seasonTickInterval) return;
+            seasonTickInterval = setInterval(async () => {
+                updateSeasonBanner();
+                // O'yin ochiq turganda 00:00 kelib qolsa — o'tishni darhol qo'llaymiz
+                if (!isUnlimitedActive() && !midnightChecked && profile && !profile.midnightApplied) {
+                    midnightChecked = true;
+                    let applied = await applyMidnightTransition();
+                    if (applied) {
+                        updateHud();
+                        alert(`🌙 Yarim tun keldi!\n\n+${MIDNIGHT_COIN_BONUS.toLocaleString()} 🪙 tanga qo'shildi\n💎 Olmoslaringiz ${MIDNIGHT_GEM_SET} ta bo'ldi\n\nOlinmagan Legends futbolchilari endi ancha qimmat!`);
+                    }
+                }
+            }, 1000);
+        }
+
+        function ownsPlayer(id) { return profile && profile.inventory.includes(id); }
+
+        async function grantFreeBase(id) {
+            if (!profile || ownsPlayer(id)) return false;
+            profile.inventory.push(id);
+            await saveProfile();
+            updateHud();
+            return true;
+        }
+
+        async function claimKhabibFree() {
+            if (!isFreeWindowActive()) { alert("Vaqt tugagan — Khabib endi hech qayerdan olib bo'lmaydi 😔"); return false; }
+            if (ownsPlayer('khabib')) return true;
+            profile.inventory.push('khabib');
+            profile.khabibClaimed = true;
+            await saveProfile();
+            updateHud();
+            return true;
+        }
+
+        async function buyPlayer(id) {
+            let p = catalogById(id);
+            if (!p || !profile) return;
+            if (ownsPlayer(id)) { alert('Bu futbolchi allaqachon sizda bor!'); return; }
+
+            if (p.id === 'khabib') {
+                if (isFreeWindowActive()) { await claimKhabibFree(); renderShop(); return; }
+                alert("👑 Khabib abadiy ketgan — uni faqat ochilish soatida olish mumkin edi.");
+                return;
+            }
+
+            let price = priceOf(p);
+            if (!canAfford(price)) {
+                alert(`Coin yetarli emas! Kerak: ${price.toLocaleString()} 🪙`);
+                return;
+            }
+            spendCoins(price);
+            profile.inventory.push(id);
+            await saveProfile(); updateHud(); renderShop();
+        }
+
+        // ---- DO'KON EKRANI ----
+        let shopTab = 'ALL';
+        function setShopTab(tab) {
+            shopTab = tab;
+            document.querySelectorAll('.shop-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+            renderShop();
+        }
+        function openShop() {
+            hideAllScreens(); let shopEl = document.getElementById('shop-screen');
+            shopEl.style.display = 'flex'; playEnterAnim(shopEl);
+            document.getElementById('shopCoins').innerText = displayCoins();
+            document.getElementById('shopGems').innerText = displayGems();
+            renderShop();
+        }
+        function renderShop() {
+            let pool;
+            if (shopTab === 'ALL') pool = primeDb.concat(celebDb).concat(db.filter(p => p.tier !== 'MAX'));
+            else if (shopTab === 'PRIME') pool = primeDb.slice();
+            else if (shopTab === 'CELEB') pool = celebDb.slice();
+            else pool = db.filter(p => p.tier === 'MAX');
+
+            // Zo'rligi bo'yicha tartiblash
+            pool = pool.slice().sort(strengthComparator);
+
+            let grid = document.getElementById('shop-grid');
+            grid.innerHTML = '';
+            document.getElementById('shopCount').innerText = `${pool.length} ta futbolchi`;
+
+            pool.forEach(p => {
+                let card = document.createElement('div');
+                card.className = 'shop-card' + (p.tier === 'PRIME' ? ' prime-card' : '');
+                card.style.borderColor = p.glow;
+                let owned = ownsPlayer(p.id);
+                let badge = p.tier === 'MAX' ? '👑 MAX'
+                          : p.tier === 'PRIME' ? '🔥 PRIME'
+                          : p.tier === 'CELEB' ? '🌟'.repeat(p.star)
+                          : (p.abilities.length + 'x⭐');
+
+                let priceHtml, btnHtml;
+                if (owned) {
+                    priceHtml = '';
+                    btnHtml = '<div class="sc-owned">✅ Sizda bor</div>';
+                } else if (p.tier === 'MAX') {
+                    if (isFreeWindowActive()) { priceHtml = '<div class="sc-price">TEKIN — hozir oling!</div>'; btnHtml = `<button class="sc-btn" onclick="buyPlayer('${p.id}')">👑 Olish</button>`; }
+                    else { priceHtml = '<div class="sc-price" style="color:#666">Abadiy ketgan</div>'; btnHtml = '<button class="sc-btn" disabled>Yo\'q</button>'; }
+                } else {
+                    let price = priceOf(p);
+                    if (isUnlimitedActive()) {
+                        priceHtml = `<div class="sc-price" style="color:#00ffcc">∞ BEPUL (cheksiz)</div>`;
+                    } else if (price === 0) {
+                        priceHtml = `<div class="sc-price">TEKIN!</div>`;
+                    } else {
+                        let expensive = price >= LEGENDS_SURCHARGE;
+                        priceHtml = `<div class="sc-price" ${expensive?'style="color:#ff6688"':''}>🪙 ${price.toLocaleString()}</div>`;
+                    }
+                    let label = p.tier === 'PRIME' ? '🔥 Sotib olish' : p.tier === 'CELEB' ? '🌟 Sotib olish' : 'Sotib olish';
+                    btnHtml = `<button class="sc-btn" ${canAfford(price) ? '' : 'disabled'} onclick="buyPlayer('${p.id}')">${label}</button>`;
+                }
+
+                card.innerHTML = `
+                    <div class="sc-badge">${badge}</div>
+                    <div class="sc-name" style="color:${p.color}">${p.name}</div>
+                    ${priceHtml}
+                    ${btnHtml}
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function currentPackCost() { return todaysLiveEvent().packDiscount || PACK_COST_GEMS; }
+
+        // ---- PACK (GACHA) ----
+        function openPack() {
+            hideAllScreens(); let packEl = document.getElementById('pack-screen');
+            packEl.style.display = 'flex'; playEnterAnim(packEl);
+            document.getElementById('packGems').innerText = displayGems();
+            document.getElementById('pack-result').style.display = 'none';
+            let cost = currentPackCost();
+            document.getElementById('packOpenBtn').textContent = `Pack ochish (${cost}💎)`;
+            document.getElementById('packDiscountNote').style.display = cost < PACK_COST_GEMS ? 'block' : 'none';
+        }
+        async function openPackNow() {
+            if (!profile) return;
+            let cost = currentPackCost();
+            if (!canAffordGems(cost)) { alert("💎 Gem yetarli emas! Turnirda g'olib bo'lib gem yig'ing."); return; }
+            spendGems(cost);
+
+            let roll = Math.random();
+            let cum = 0;
+            const tiers = [
+                { star: 5, p: 0.000001 }, { star: 4, p: 0.00002 }, { star: 3, p: 0.0003 },
+                { star: 2, p: 0.004 }, { star: 1, p: 0.05 }
+            ];
+            let hitStar = null;
+            for (const t of tiers) { cum += t.p; if (roll < cum) { hitStar = t.star; break; } }
+
+            let resultCard = document.getElementById('pack-result-card');
+            let resultBox = document.getElementById('pack-result');
+            resultBox.style.display = 'flex';
+
+            if (!hitStar) {
+                profile.coins += 20;
+                await saveProfile(); updateHud();
+                document.getElementById('packGems').innerText = displayGems();
+                resultCard.style.cssText = 'background:#111;border:3px solid #444;';
+                resultCard.innerHTML = `<div style="font-size:40px">😕</div><div class="pack-result-name" style="color:#888">Omad kulmadi</div><div style="color:#ffd700;font-size:13px;margin-top:6px">+20 🪙 tasalli</div>`;
+                return;
+            }
+
+            // 5-yulduz slotiga yangi Prime futbolchilari tushadi (eng noyob mukofot),
+            // qolgan yulduzlarga Legends (CELEB) futbolchilari.
+            let candidates = (hitStar === 5)
+                ? primeDb2.slice()
+                : celebDb.filter(c => c.star === hitStar);
+            let won;
+            if (candidates.length === 0) {
+                // 5-yulduz hozircha hech kimda yo'q — mo''jizaviy jekpot
+                profile.coins += 1000;
+                await saveProfile(); updateHud();
+                resultCard.style.cssText = 'background:linear-gradient(160deg,#ffd700,#ff8800);border:3px solid #fff;';
+                resultCard.innerHTML = `<div style="font-size:40px">🌠</div><div class="pack-result-name" style="color:#fff">JEKPOT!</div><div style="color:#fff;font-size:13px;margin-top:6px">5⭐ darajada hali hech kim yo'q — +1000 🪙 mo''jiza sovg'a!</div>`;
+                document.getElementById('packGems').innerText = displayGems();
+                return;
+            }
+            won = candidates[Math.floor(Math.random() * candidates.length)];
+            let wonLabel = won.tier === 'PRIME' ? '🔥 PRIME' : '⭐'.repeat(won.star || 1);
+
+            if (ownsPlayer(won.id)) {
+                let refund = Math.max(20, Math.floor((won.price || priceOf(won)) / 4));
+                profile.coins += refund;
+                await saveProfile(); updateHud();
+                resultCard.style.cssText = `background:#111;border:3px solid ${won.glow};`;
+                resultCard.innerHTML = `<div style="font-size:34px">🔁</div><div class="pack-result-name" style="color:${won.color}">${won.name}</div><div class="pack-result-stars">${wonLabel}</div><div style="color:#ffd700;font-size:12px;margin-top:8px">Allaqachon bor edi → +${refund.toLocaleString()} 🪙</div>`;
+            } else {
+                profile.inventory.push(won.id);
+                await saveProfile(); updateHud();
+                resultCard.style.cssText = `background:#111;border:3px solid ${won.glow};box-shadow:0 0 30px ${won.glow};`;
+                let bonus = won.tier === 'PRIME' ? '<br><span style="color:#ffd700">🔥 NOYOB PRIME FUTBOLCHI!</span>' : '';
+                resultCard.innerHTML = `<div style="font-size:34px">🎉</div><div class="pack-result-name" style="color:${won.color}">${won.name}</div><div class="pack-result-stars">${wonLabel}</div><div style="color:#00ffcc;font-size:12px;margin-top:8px">Yangi futbolchi inventarga qo'shildi!${bonus}</div>`;
+            }
+            document.getElementById('packGems').innerText = displayGems();
+        }
+
+        // ---- INVENTAR ----
+        function openInventory() {
+            hideAllScreens(); let invEl = document.getElementById('inventory-screen');
+            invEl.style.display = 'flex'; playEnterAnim(invEl);
+            renderInventory();
+        }
+        function renderInventory() {
+            let grid = document.getElementById('inv-grid');
+            grid.innerHTML = '';
+            let owned = profile.inventory.map(id => catalogById(id)).filter(Boolean).sort(strengthComparator);
+            document.getElementById('invCount').innerText = `${owned.length} ta futbolchi`;
+            if (owned.length === 0) {
+                grid.innerHTML = '<div class="inv-empty">Inventaringiz bo\'sh 😕<br>Do\'kon yoki Pack orqali futbolchi oling.</div>';
+                return;
+            }
+            owned.forEach(p => {
+                let card = document.createElement('div');
+                card.className = 'player-card' + (p.tier === 'MAX' ? ' legend-card' : p.tier === 'PRIME' ? ' prime-card' : '');
+                card.style.borderColor = p.glow;
+                let badge = p.tier === 'MAX' ? '👑 MAX' : p.tier === 'PRIME' ? '🔥 PRIME' : p.tier === 'CELEB' ? '🌟'.repeat(p.star) : (p.abilities.length > 0 ? '⭐'.repeat(Math.min(p.abilities.length,5)) : 'ODDIY');
+                card.innerHTML = `
+                    <div class="tier-badge${p.tier==='MAX'?' tier-max':''}">${badge}</div>
+                    <div class="player-name" style="color:${p.color}">${p.name}</div>
+                    <div class="player-stats">⚡${p.stats.speed} 💪${p.stats.power}</div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // ---- PROFIL EKRANI ----
+        function openProfile() {
+            hideAllScreens(); let profEl = document.getElementById('profile-screen');
+            profEl.style.display = 'flex'; playEnterAnim(profEl);
+            renderProfileScreen();
+        }
+        function renderProfileScreen() {
+            document.getElementById('nickInput').value = profile.nickname;
+            document.getElementById('profCoins').innerText = displayCoins();
+            document.getElementById('profGems').innerText = displayGems();
+            document.getElementById('profInvCount').innerText = profile.inventory.length;
+            document.getElementById('profInvTotal').innerText = fullCatalog().length;
+            document.getElementById('cldBadge').textContent = calcCollectionLevel();
+            document.getElementById('exportBox').style.display = 'none';
+        }
+
+        // ---- Profilni ko'chirish (versiyalar orasida) ----
+        // localStorage fayl nomiga/joylashuviga bog'liq bo'lishi mumkin — shuning uchun
+        // o'yin yangi versiyaga o'tganda bu KOD orqali hisobni qo'lda ko'chirish eng
+        // ishonchli yo'l (brauzer sozlamalariga qaramaydi).
+        function exportProfile() {
+            if (!profile) return;
+            let json = JSON.stringify(profile);
+            let encoded = btoa(unescape(encodeURIComponent(json)));
+            let box = document.getElementById('exportBox');
+            box.value = encoded;
+            box.style.display = 'block';
+            box.focus(); box.select();
+            try { document.execCommand('copy'); } catch(e) {}
+            alert("Kod nusxalandi! Yangi versiyada shu kodni \"Tiklash\" bo'limiga joylashtiring.");
+        }
+        async function importProfile() {
+            let code = document.getElementById('importBox').value.trim();
+            if (!code) return;
+            try {
+                let json = decodeURIComponent(escape(atob(code)));
+                let imported = JSON.parse(json);
+                if (!imported || typeof imported.coins !== 'number' || !Array.isArray(imported.inventory)) {
+                    alert("Kod noto'g'ri yoki buzilgan.");
+                    return;
+                }
+                profile = imported;
+                await saveProfile();
+                updateHud();
+                renderProfileScreen();
+                document.getElementById('importBox').value = '';
+                alert('Hisobingiz tiklandi! Xush kelibsiz, ' + profile.nickname);
+            } catch(e) {
+                alert("Kod noto'g'ri yoki buzilgan.");
+            }
+        }
+
+        // ---- LIVE EVENTS / CHALLENGE MODE ----
+        const CHALLENGES = [
+            { id: 'speedrun', title: '⚡ Tezkor hujum', desc: "1 daqiqada kamida 2 gol uring", reward: 60, gemReward: 0, kind: 'goals_in_time', goals: 2, seconds: 60 },
+            { id: 'cleansheet', title: '🛡 Devor', desc: "Botga gol berma va 1 ta gol ur", reward: 80, gemReward: 0, kind: 'cleansheet' },
+            { id: 'comeback', title: '🔥 Qaytish', desc: "3 ta ketma-ket raundni yuting (turnirda)", reward: 100, gemReward: 1, kind: 'streak', n: 3 },
+            { id: 'underdog', title: '🎯 Kuchsiz jamoa', desc: "Oddiy (0 qobiliyat) futbolchi bilan botni yuting", reward: 70, gemReward: 0, kind: 'win_with_base' },
+            { id: 'quickfire', title: '⏱ Chaqmoq', desc: "O'yin boshlanganidan 15 soniya ichida gol ur", reward: 65, gemReward: 0, kind: 'quickfire', seconds: 15 },
+            { id: 'legend_slayer', title: '⚔️ Legenda ovchisi', desc: "Turnirda TOP10 darajali botni yuting", reward: 130, gemReward: 2, kind: 'auto' },
+            { id: 'big_win', title: '💪 Katta g\'alaba', desc: "Turnirda kamida 3 farq bilan yuting", reward: 90, gemReward: 1, kind: 'auto' },
+        ];
+        function dayIndex() { return Math.floor(Date.now() / 86400000); }
+        function todaysLiveEvent() {
+            const events = [
+                { title: '🔥 2x Coin kuni!', desc: "Bugun barcha o'yinlardan coin 2 baravar!", multiplier: 2 },
+                { title: '💎 Gem yomg\'iri', desc: "Bugun turnir yakunida +2 bonus gem!", bonusGem: 2 },
+                { title: '⚡ Tezkor kun', desc: "Bugun hamma botlar tezroq harakatlanadi — qiyinroq, lekin +50% coin!", multiplier: 1.5 },
+                { title: '🎁 Arzon pack', desc: "Bugun pack narxi 3 gem (odatdagi 5 o'rniga)!", packDiscount: 3 },
+            ];
+            return events[dayIndex() % events.length];
+        }
+        function openEvents() {
+            hideAllScreens(); let evEl = document.getElementById('events-screen');
+            evEl.style.display = 'flex'; playEnterAnim(evEl);
+            renderEvents();
+        }
+        function renderEvents() {
+            let list = document.getElementById('events-list');
+            list.innerHTML = '';
+            let ev = todaysLiveEvent();
+            let liveCard = document.createElement('div');
+            liveCard.className = 'event-card live';
+            liveCard.innerHTML = `
+                <div class="ec-info">
+                    <div class="ec-title">${ev.title}</div>
+                    <div class="ec-desc">${ev.desc}</div>
+                    <div class="ec-reward">🔴 JONLI — bugun tugaydi</div>
+                </div>
+                <div class="ec-btn" style="background:none;cursor:default">Faol ✅</div>
+            `;
+            list.appendChild(liveCard);
+
+            CHALLENGES.forEach(c => {
+                let done = profile.completedChallenges && profile.completedChallenges[c.id] === dayIndex();
+                let rewardText = `🪙 +${c.reward} coin` + (c.gemReward ? ` · 💎 +${c.gemReward}` : '');
+                let card = document.createElement('div');
+                card.className = 'event-card';
+                let btnHtml = c.kind === 'auto'
+                    ? `<div class="ec-btn" style="background:none;cursor:default;color:#888">${done?"✅ Bajarildi":"🎮 Turnirda avtomatik"}</div>`
+                    : `<button class="ec-btn" ${done?'disabled':''} onclick="startChallenge('${c.id}')">${done?"✅ Bajarildi":"Boshlash"}</button>`;
+                card.innerHTML = `
+                    <div class="ec-info">
+                        <div class="ec-title">${c.title}</div>
+                        <div class="ec-desc">${c.desc}</div>
+                        <div class="ec-reward">${rewardText}</div>
+                    </div>
+                    ${btnHtml}
+                `;
+                list.appendChild(card);
+            });
+        }
+        let activeChallenge = null;
+        function startChallenge(id) {
+            let c = CHALLENGES.find(x => x.id === id);
+            if (!c || c.kind === 'auto') return;
+            activeChallenge = { def: c, startedAt: Date.now(), goalsScored: 0 };
+            hideAllScreens();
+            gameMode = 1; trnActive = false;
+            openSelectionForChallenge();
+        }
+        function openSelectionForChallenge() {
+            document.getElementById('selection-screen').style.display = 'flex';
+            selectingPlayer = 1;
+            document.getElementById('select-title').innerText = "Challenge uchun futbolchini tanlang";
+            document.getElementById('select-title').style.color = '#ff6688';
+            document.getElementById('searchInput').value = '';
+            currentTierFilter = 'ALL';
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.tier === 'ALL'));
+            renderRosterList();
+        }
+        async function checkChallengeProgress() {
+            if (!activeChallenge) return;
+            const c = activeChallenge.def;
+            if (c.kind === 'goals_in_time') {
+                if (score.p1 >= c.goals && (Date.now() - activeChallenge.startedAt) <= c.seconds*1000) {
+                    await completeChallenge(c);
+                }
+            } else if (c.kind === 'cleansheet') {
+                if (score.p1 >= 1 && score.p2 === 0) await completeChallenge(c);
+            } else if (c.kind === 'win_with_base') {
+                if (score.p1 > score.p2 && p1.data.abilities.length === 0) await completeChallenge(c);
+            } else if (c.kind === 'quickfire') {
+                if (score.p1 >= 1 && (Date.now() - activeChallenge.startedAt) <= c.seconds*1000) {
+                    await completeChallenge(c);
+                }
+            }
+        }
+        async function completeChallenge(c) {
+            if (!profile.completedChallenges) profile.completedChallenges = {};
+            if (profile.completedChallenges[c.id] === dayIndex()) { activeChallenge = null; return; }
+            profile.completedChallenges[c.id] = dayIndex();
+            profile.coins += c.reward;
+            if (c.gemReward) profile.gems += c.gemReward;
+            await saveProfile(); updateHud();
+            activeChallenge = null;
+            let msg = `🏆 Challenge bajarildi! +${c.reward} coin` + (c.gemReward ? ` +${c.gemReward} gem` : '');
+            setTimeout(() => alert(msg), 300);
+        }
+
+        // ---- Turnir mukofotlari (coin/gem) — raqib darajasiga qarab ko'proq/kamroq ----
+        const TIER_REWARD_MULT = { TOP10: 3, TOP40: 2, TOP80: 1.5, TOP130: 1.2, BASE: 1 };
+        async function awardTournamentRound(p1g, p2g, opponentTier) {
+            if (!profile) return;
+            let ev = todaysLiveEvent();
+            let mult = (ev.multiplier || 1) * (TIER_REWARD_MULT[opponentTier] || 1);
+            let base = p1g > p2g ? 40 : p1g === p2g ? 15 : 10;
+            profile.coins += Math.round(base * mult);
+            await saveProfile(); updateHud();
+        }
+        async function awardTournamentFinish(wins, losses) {
+            if (!profile) return;
+            let ev = todaysLiveEvent();
+            let gems = 1 + Math.max(0, wins - losses) + (ev.bonusGem || 0);
+            profile.gems += gems;
+            if (!profile.trnBestWins || wins > profile.trnBestWins) profile.trnBestWins = wins;
+            await saveProfile(); updateHud();
+            return gems;
+        }
+
+        // ============================================================
+        // TOUCH (SENSORLI) BOSHQARUV — faqat ekranga tegilganda paydo bo'ladi
+        // ============================================================
+        let touchActiveP1 = null; // {id, baseX, baseY}
+        // ============================================================
+        // SENSORLI BOSHQARUV (mobil / planshet) — qayta ishlangan
+        // ============================================================
+        const IS_TOUCH = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+        // Analog harakat: joystick qanchalik uzoqqa surилsa, shunchalik tez yuradi (0..1)
+        let touchAxis = { x: 0, y: 0, active: false };
+
+        function setupTouchControls() {
+            if (!IS_TOUCH) return;
+            document.body.classList.add('is-touch');
+
+            const joyZone  = document.getElementById('touchJoyZone');
+            const joyBase  = document.getElementById('touchJoyBase');
+            const joyStick = document.getElementById('touchJoyStick');
+            const btnR = document.getElementById('touchBtnR');
+            const btnE = document.getElementById('touchBtnE');
+
+            let joyId = null, baseX = 0, baseY = 0;
+            const MAXR = 55;      // joystick radiusi
+            const DEAD = 0.14;    // o'lik zona
+
+            function showJoyAt(x, y) {
+                baseX = x; baseY = y;
+                joyBase.style.left = (x - 60) + 'px';
+                joyBase.style.top  = (y - 60) + 'px';
+                joyBase.style.opacity = '1';
+                joyStick.style.transform = 'translate(0px, 0px)';
+            }
+            function hideJoy() {
+                joyBase.style.opacity = '0.35';
+                joyStick.style.transform = 'translate(0px, 0px)';
+                touchAxis.x = 0; touchAxis.y = 0; touchAxis.active = false;
+            }
+            function updateJoy(x, y) {
+                let dx = x - baseX, dy = y - baseY;
+                let d = Math.hypot(dx, dy);
+                if (d > MAXR) { dx = dx / d * MAXR; dy = dy / d * MAXR; d = MAXR; }
+                joyStick.style.transform = `translate(${dx}px, ${dy}px)`;
+                let nx = dx / MAXR, ny = dy / MAXR;
+                let mag = Math.hypot(nx, ny);
+                if (mag < DEAD) { touchAxis.x = 0; touchAxis.y = 0; touchAxis.active = false; }
+                else { touchAxis.x = nx; touchAxis.y = ny; touchAxis.active = true; }
+            }
+
+            // Joystick zonasi — ekranning chap yarmi
+            joyZone.addEventListener('touchstart', e => {
+                e.preventDefault();
+                if (joyId !== null) return;
+                const t = e.changedTouches[0];
+                joyId = t.identifier;
+                showJoyAt(t.clientX, t.clientY);
+                updateJoy(t.clientX, t.clientY);
+            }, { passive: false });
+
+            joyZone.addEventListener('touchmove', e => {
+                e.preventDefault();
+                for (const t of e.changedTouches) {
+                    if (t.identifier === joyId) updateJoy(t.clientX, t.clientY);
+                }
+            }, { passive: false });
+
+            function endJoy(e) {
+                for (const t of e.changedTouches) {
+                    if (t.identifier === joyId) { joyId = null; hideJoy(); }
+                }
+            }
+            joyZone.addEventListener('touchend', endJoy, { passive: false });
+            joyZone.addEventListener('touchcancel', endJoy, { passive: false });
+
+            // Amal tugmalari — mustaqil, joystick bilan bir vaqtda ishlaydi
+            function bindBtn(btn, onPress) {
+                btn.addEventListener('touchstart', e => {
+                    e.preventDefault(); e.stopPropagation();
+                    btn.classList.add('pressed');
+                    onPress();
+                }, { passive: false });
+                const release = e => { e.preventDefault(); btn.classList.remove('pressed'); };
+                btn.addEventListener('touchend', release, { passive: false });
+                btn.addEventListener('touchcancel', release, { passive: false });
+            }
+            bindBtn(btnR, () => { if (p1 && p1.data.id === 'khabib' && !isGoalScored) khabibPushkaCharged = true; });
+            bindBtn(btnE, () => { if (p1 && p1.data.id === 'khabib' && !isGoalScored) khabibSirliOn = !khabibSirliOn; });
+
+            // Sahifa siljishini (scroll/zoom) o'yin paytida to'xtatamiz
+            document.addEventListener('touchmove', e => {
+                if (!isGameOver) e.preventDefault();
+            }, { passive: false });
+        }
+
+        // O'yin boshlanganda/tugaganda sensorli boshqaruvni ko'rsatish/yashirish
+        function updateTouchUI() {
+            if (!IS_TOUCH) return;
+            const show = !isGameOver;
+            document.getElementById('touchJoyZone').style.display = show ? 'block' : 'none';
+            document.getElementById('touchJoyBase').style.display = show ? 'block' : 'none';
+            const isKhabib = show && p1 && p1.data.id === 'khabib';
+            document.getElementById('touchBtnR').style.display = isKhabib ? 'flex' : 'none';
+            document.getElementById('touchBtnE').style.display = isKhabib ? 'flex' : 'none';
+        }
+
+        // ---- Ekran yo'nalishi: portret rejimda gorizontalga o'tishni taklif qilamiz ----
+        let rotateDismissed = false;
+        function dismissRotate() {
+            rotateDismissed = true;
+            document.getElementById('rotatePrompt').classList.remove('show');
+        }
+        function checkOrientation() {
+            if (!IS_TOUCH) return;
+            let portrait = window.innerHeight > window.innerWidth;
+            // Faqat o'yin davomida va foydalanuvchi rad etmagan bo'lsa ko'rsatamiz
+            let shouldShow = portrait && !isGameOver && !rotateDismissed;
+            document.getElementById('rotatePrompt').classList.toggle('show', shouldShow);
+        }
+        window.addEventListener('resize', () => { resize(); checkOrientation(); });
+        window.addEventListener('orientationchange', () => {
+            setTimeout(() => { resize(); checkOrientation(); }, 250);
+        });
+
+        // ============================================================
+        // ISHGA TUSHIRISH
+        // ============================================================
+        function showLaunchSplash() {
+            return new Promise(resolve => {
+                let el = document.getElementById('launchSplash');
+                el.classList.add('show');
+                setTimeout(() => { el.classList.remove('show'); resolve(); }, 1950);
+            });
+        }
+
+        async function initApp() {
+            let isNew = await ensureProfile();
+            // 00:00 dan keyin birinchi marta kirilganda bonusni qo'llaymiz (faqat bir marta)
+            let midnightApplied = await applyMidnightTransition();
+            document.getElementById('loading-screen').style.display = 'none';
+            updateHud();
+            updateSeasonBanner();
+            startSeasonTicker();
+            setupTouchControls();
+            await showLaunchSplash();
+            playEnterAnim(document.getElementById('menu'));
+            if (isNew) {
+                let t = document.getElementById('welcomeToast');
+                t.classList.remove('show'); void t.offsetWidth;
+                t.classList.add('show');
+                setTimeout(() => t.classList.remove('show'), 4000);
+            }
+            if (midnightApplied && !isNew) {
+                setTimeout(() => alert(`🌙 Xush kelibsiz!\n\n+${MIDNIGHT_COIN_BONUS.toLocaleString()} 🪙 tanga qo'shildi\n💎 Olmoslaringiz ${MIDNIGHT_GEM_SET} ta bo'ldi`), 500);
+            }
+        }
+        initApp();
+    </script>
+</body>
+</html>
